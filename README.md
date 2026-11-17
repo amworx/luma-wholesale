@@ -8,6 +8,16 @@ Arabic-first **wholesale** cosmetics storefront, Android-installable PWA, sales 
 
 Free GitHub Pages hosting, HTTPS, installable on Android. Open in Chrome → menu → "Install app" / "Add to Home screen".
 
+## Storefront features
+
+- **Product image viewer** — fullscreen lightbox with zoom, rotate, next/previous, share and keyboard controls.
+- **Favorites** — a heart on every product card and product page; saved to localStorage and shown in the Favorites page.
+- **Product enquiries** — customers request info or leave feedback on a product; the message lands in the sales/admin "الاستفسارات" panel.
+- **Location map** — checkout uses a free OpenStreetMap picker (search, "my location", click-to-pin, no API key); postal code was removed. Picked coordinates and place name are saved into the printable order report.
+- **Categories & subcategories** — manage parent/child categories in either dashboard; category pages show subcategory chips and a redesigned filter panel (price, availability switch, brands, sort) with a mobile bottom sheet.
+- **Mobile-first** — responsive product grid, single-column product/checkout layouts, sticky mobile filter bar and large touch targets.
+- **Persistent settings** — store name, users and other admin edits survive refresh; stored data is migrated in place across app updates so nothing is lost.
+
 ## What this is
 
 A complete **demo** for a retail cosmetics trader. One React app serves three audiences:

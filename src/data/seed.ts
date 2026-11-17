@@ -5,12 +5,18 @@ const img = (name: string) => `${import.meta.env.BASE_URL}images/${name}.svg`;
 const now = '2026-11-01T09:00:00.000Z';
 
 export const seedCategories: Category[] = [
-  { id: 'c-lips', nameAr: 'أحمر الشفاه', nameEn: 'Lipstick', descriptionAr: 'ألوان ثابتة وترطيب يدوم طويلاً', icon: 'Palette', color: '#b3123f', active: true, sortOrder: 1 },
-  { id: 'c-skin', nameAr: 'العناية بالبشرة', nameEn: 'Skincare', descriptionAr: 'سيرومات وكريمات للبشرة', icon: 'Sparkles', color: '#4d8ba3', active: true, sortOrder: 2 },
-  { id: 'c-fragrance', nameAr: 'العطور', nameEn: 'Fragrance', descriptionAr: 'روائح فاخرة تدوم طوال اليوم', icon: 'Flower2', color: '#a85480', active: true, sortOrder: 3 },
-  { id: 'c-makeup', nameAr: 'المكياج', nameEn: 'Makeup', descriptionAr: 'أساسيات الإطلالة اليومية', icon: 'Brush', color: '#63468a', active: true, sortOrder: 4 },
-  { id: 'c-sun', nameAr: 'الحماية من الشمس', nameEn: 'Sun Care', descriptionAr: 'حماية يومية بتركيبة خفيفة', icon: 'Sun', color: '#c99a2c', active: true, sortOrder: 5 },
-  { id: 'c-nails', nameAr: 'الأظافر', nameEn: 'Nails', descriptionAr: 'ألوان تدوم وتلمع', icon: 'Hand', color: '#8e2b20', active: true, sortOrder: 6 },
+  { id: 'c-lips', nameAr: 'أحمر الشفاه', nameEn: 'Lipstick', descriptionAr: 'ألوان ثابتة وترطيب يدوم طويلاً', icon: 'Palette', color: '#b3123f', active: true, sortOrder: 1, parentId: null },
+  { id: 'c-lips-matte', nameAr: 'أحمر مطفي', nameEn: 'Matte Lipstick', descriptionAr: 'تركيبة مطفيّة تدوم طويلاً', icon: 'Palette', color: '#b3123f', active: true, sortOrder: 1, parentId: 'c-lips' },
+  { id: 'c-lips-gloss', nameAr: 'لمعة الشفاه', nameEn: 'Lip Gloss', descriptionAr: 'لمعة وترطيب فوري', icon: 'Sparkles', color: '#b3123f', active: true, sortOrder: 2, parentId: 'c-lips' },
+  { id: 'c-skin', nameAr: 'العناية بالبشرة', nameEn: 'Skincare', descriptionAr: 'سيرومات وكريمات للبشرة', icon: 'Sparkles', color: '#4d8ba3', active: true, sortOrder: 2, parentId: null },
+  { id: 'c-skin-serum', nameAr: 'السيرومات', nameEn: 'Serums', descriptionAr: 'سيرومات مركّزة لكل أنواع البشرة', icon: 'Sparkles', color: '#4d8ba3', active: true, sortOrder: 1, parentId: 'c-skin' },
+  { id: 'c-skin-cream', nameAr: 'الكريمات', nameEn: 'Creams', descriptionAr: 'كريمات ترطيب وحماية', icon: 'Sparkles', color: '#4d8ba3', active: true, sortOrder: 2, parentId: 'c-skin' },
+  { id: 'c-fragrance', nameAr: 'العطور', nameEn: 'Fragrance', descriptionAr: 'روائح فاخرة تدوم طوال اليوم', icon: 'Flower2', color: '#a85480', active: true, sortOrder: 3, parentId: null },
+  { id: 'c-fragrance-women', nameAr: 'عطور زهرية', nameEn: 'Floral', descriptionAr: 'روائح زهرية ناعمة', icon: 'Flower2', color: '#a85480', active: true, sortOrder: 1, parentId: 'c-fragrance' },
+  { id: 'c-fragrance-oud', nameAr: 'العود والعنبر', nameEn: 'Oud & Amber', descriptionAr: 'روائح شرقية دافئة', icon: 'Flower2', color: '#a85480', active: true, sortOrder: 2, parentId: 'c-fragrance' },
+  { id: 'c-makeup', nameAr: 'المكياج', nameEn: 'Makeup', descriptionAr: 'أساسيات الإطلالة اليومية', icon: 'Brush', color: '#63468a', active: true, sortOrder: 4, parentId: null },
+  { id: 'c-sun', nameAr: 'الحماية من الشمس', nameEn: 'Sun Care', descriptionAr: 'حماية يومية بتركيبة خفيفة', icon: 'Sun', color: '#c99a2c', active: true, sortOrder: 5, parentId: null },
+  { id: 'c-nails', nameAr: 'الأظافر', nameEn: 'Nails', descriptionAr: 'ألوان تدوم وتلمع', icon: 'Hand', color: '#8e2b20', active: true, sortOrder: 6, parentId: null },
 ];
 
 function variant(
@@ -229,7 +235,8 @@ export const seedUsers: User[] = [
 ];
 
 const emptyAddress = {
-  companyName: '', phone2: '', email: '', postalCode: '', building: '', landmarks: '', deliveryTime: '',
+  companyName: '', phone2: '', email: '', building: '', landmarks: '', deliveryTime: '',
+  latitude: null, longitude: null, mapLabel: '',
 };
 
 export const seedOrders: Order[] = [
@@ -273,11 +280,12 @@ export const seedOrders: Order[] = [
 
 export function createSeedData(): AppData {
   return {
-    version: 2,
+    version: 3,
     users: structuredClone(seedUsers),
     categories: structuredClone(seedCategories),
     products: structuredClone(seedProducts),
     orders: structuredClone(seedOrders),
+    enquiries: [],
     settings: {
       storeNameAr: 'لُما', storeNameEn: 'Luma', taglineAr: 'شريكك الموثوق في مستحضرات التجميل بالجملة',
       currency: 'USD', currencySymbol: '$', currencyPosition: 'before',

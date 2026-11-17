@@ -10,6 +10,7 @@ export function AdminOverview() {
   const newOrders = data.orders.filter((o) => o.status === 'new').length;
   const lowStock = data.products.filter((p) => p.variants.some((v) => v.stock <= v.lowStockThreshold)).length;
   const customers = data.users.filter((u) => u.role === 'customer').length;
+  const openEnquiries = data.enquiries.filter((e) => !e.handled).length;
 
   const topProducts = [...data.products].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 5);
 
@@ -45,7 +46,8 @@ export function AdminOverview() {
               <span className="badge badge-plum">{p.reviewCount} تقييم</span>
             </div>
           ))}
-          {lowStock > 0 && <Link to="/admin/products" className="btn btn-outline btn-block" style={{ marginTop: 18 }}><AlertTriangle size={15} /> {lowStock} منتج منخفض المخزون</Link>}
+          <Link to="/admin/enquiries" className="btn btn-outline btn-block" style={{ marginTop: 18 }}>الاستفسارات والملاحظات {openEnquiries > 0 && `(${openEnquiries} جديدة)`}</Link>
+          {lowStock > 0 && <Link to="/admin/products" className="btn btn-outline btn-block" style={{ marginTop: 8 }}><AlertTriangle size={15} /> {lowStock} منتج منخفض المخزون</Link>}
         </div>
       </div>
     </div>

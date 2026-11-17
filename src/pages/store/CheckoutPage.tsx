@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, CheckCircle2, FileText, Printer, PackageCheck } from 'lucide-react';
-import { useData, store, effectivePrice, formatMoney } from '@/data/store';
+import { useData, useSession, store, effectivePrice, formatMoney } from '@/data/store';
 import { useCart } from '@/state/CartContext';
-import { useSession } from '@/data/store';
 import { useToast } from '@/components/ui/Toast';
+import { LocationPicker, type PickedLocation } from '@/components/store/LocationPicker';
 import type { Order, ShippingAddress } from '@/types';
 
 const emptyAddress: ShippingAddress = {
   fullName: '', phone: '', city: '', area: '', street: '', notes: '',
-  companyName: '', phone2: '', email: '', postalCode: '', building: '', landmarks: '', deliveryTime: '',
+  companyName: '', phone2: '', email: '', building: '', landmarks: '', deliveryTime: '',
+  latitude: null, longitude: null, mapLabel: '',
 };
 
 export function CheckoutPage() {
@@ -20,6 +21,21 @@ export function CheckoutPage() {
   const [address, setAddress] = useState<ShippingAddress>({ ...emptyAddress, fullName: session?.name || '' });
   const [placed, setPlaced] = useState<Order | null>(null);
   const set = (k: keyof ShippingAddress, v: string) => setAddress((a) => ({ ...a, [k]: v }));
+
+  // The map is optional: only pass a value once both coordinates exist.
+  const pickedLocation: PickedLocation | null =
+    address.latitude !== null && address.longitude !== null
+      ? { latitude: address.latitude, longitude: address.longitude, label: address.mapLabel }
+      : null;
+
+  const handleLocationChange = (loc: PickedLocation | null) => {
+    setAddress((a) => ({
+      ...a,
+      latitude: loc ? loc.latitude : null,
+      longitude: loc ? loc.longitude : null,
+      mapLabel: loc ? loc.label : '',
+    }));
+  };
 
   if (!data) return null;
   const details = lines.map((line) => {
@@ -85,6 +101,17 @@ export function CheckoutPage() {
               <div><span className="muted">الجهة: </span><strong>{placed.address.companyName || '—'}</strong></div>
               <div><span className="muted">المدينة: </span><strong>{placed.address.city}</strong></div>
               <div style={{ gridColumn: '1 / -1' }}><span className="muted">العنوان: </span><strong>{placed.address.city}، {placed.address.area}، {placed.address.street}{placed.address.building ? `، ${placed.address.building}` : ''}</strong></div>
+              {(placed.address.mapLabel || placed.address.latitude !== null || placed.address.longitude !== null) && (
+                <div className="co-report-map" style={{ gridColumn: '1 / -1' }}>
+                  <span className="muted">الموقع على الخريطة: </span>
+                  <strong>{placed.address.mapLabel || '—'}</strong>
+                  {placed.address.latitude !== null && placed.address.longitude !== null && (
+                    <span className="muted" dir="ltr" style={{ display: 'inline-block', marginInlineStart: 6, fontSize: 11 }}>
+                      ({placed.address.latitude.toFixed(5)}, {placed.address.longitude.toFixed(5)})
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <table className="tbl" style={{ marginBottom: 14 }}>
               <thead><tr><th>المنتج</th><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>المجموع</th></tr></thead>
@@ -124,35 +151,46 @@ export function CheckoutPage() {
     <div className="container" style={{ paddingTop: 32 }}>
       <h1 className="section-title" style={{ marginBottom: 8 }}>إرسال طلب شراء</h1>
       <p className="muted" style={{ marginBottom: 24 }}>اختر المنتجات وحدد عنوان الشحن بدقة. سيتواصل معك فريق المبيعات لتأكيد الطلب — لا توجد عملية دفع داخل التطبيق.</p>
-      <form onSubmit={placeOrder} style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 26, alignItems: 'start' }} className="cart-layout">
-        <div style={{ display: 'grid', gap: 18 }}>
+      <div className="checkout-layout">
+        <div className="co-main">
           {/* Shipping address */}
           <div className="card card-pad">
             <h3 className="row" style={{ fontSize: 18, marginBottom: 6 }}><MapPin size={20} color="var(--plum-600)" /> عنوان الشحن والتوصيل</h3>
             <p className="muted" style={{ fontSize: 12, marginBottom: 18 }}>يرجى إدخال البيانات بدقة ليسهل على فريق المبيعات التواصل والتوصيل.</p>
-            <div className="grid-2">
-              <div className="field"><label>الاسم الكامل *</label><input className="input" required value={address.fullName} onChange={(e) => set('fullName', e.target.value)} placeholder="الاسم الكامل" /></div>
-              <div className="field"><label>اسم الجهة / الشركة</label><input className="input" value={address.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder="صيدلية، مركز تجميل، متجر..." /></div>
-              <div className="field"><label>رقم الهاتف الأساسي *</label><input className="input" required dir="ltr" value={address.phone} onChange={(e) => set('phone', e.target.value)} placeholder="09xxxxxxxx" /></div>
-              <div className="field"><label>رقم هاتف إضافي</label><input className="input" dir="ltr" value={address.phone2} onChange={(e) => set('phone2', e.target.value)} placeholder="اختياري" /></div>
-              <div className="field"><label>البريد الإلكتروني</label><input className="input" dir="ltr" type="email" value={address.email} onChange={(e) => set('email', e.target.value)} placeholder="example@email.com" /></div>
-              <div className="field"><label>المحافظة *</label>
-                <select className="select" required value={address.city} onChange={(e) => set('city', e.target.value)}>
-                  <option value="">اختر المحافظة</option>
-                  {['دمشق', 'حلب', 'حمص', 'اللاذقية', 'طرطوس', 'درعا', 'السويداء', 'القنيطرة', 'دير الزور', 'الرقة', 'الحسكة', 'إدلب'].map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+            {/* The form wraps only the fields so the map's own search form is not nested inside it. */}
+            <form id="co-order-form" onSubmit={placeOrder}>
+              <div className="grid-2">
+                <div className="field"><label>الاسم الكامل *</label><input className="input" required value={address.fullName} onChange={(e) => set('fullName', e.target.value)} placeholder="الاسم الكامل" /></div>
+                <div className="field"><label>اسم الجهة / الشركة</label><input className="input" value={address.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder="صيدلية، مركز تجميل، متجر..." /></div>
+                <div className="field"><label>رقم الهاتف الأساسي *</label><input className="input" required dir="ltr" value={address.phone} onChange={(e) => set('phone', e.target.value)} placeholder="09xxxxxxxx" /></div>
+                <div className="field"><label>رقم هاتف إضافي</label><input className="input" dir="ltr" value={address.phone2} onChange={(e) => set('phone2', e.target.value)} placeholder="اختياري" /></div>
+                <div className="field"><label>البريد الإلكتروني</label><input className="input" dir="ltr" type="email" value={address.email} onChange={(e) => set('email', e.target.value)} placeholder="example@email.com" /></div>
+                <div className="field"><label>المحافظة *</label>
+                  <select className="select" required value={address.city} onChange={(e) => set('city', e.target.value)}>
+                    <option value="">اختر المحافظة</option>
+                    {['دمشق', 'حلب', 'حمص', 'اللاذقية', 'طرطوس', 'درعا', 'السويداء', 'القنيطرة', 'دير الزور', 'الرقة', 'الحسكة', 'إدلب'].map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="field"><label>المدينة / المنطقة *</label><input className="input" required value={address.area} onChange={(e) => set('area', e.target.value)} placeholder="مثال: المالكي" /></div>
+                <div className="field" style={{ gridColumn: '1 / -1' }}><label>الشارع والتفاصيل *</label><input className="input" required value={address.street} onChange={(e) => set('street', e.target.value)} placeholder="اسم الشارع، رقم المبنى" /></div>
+                <div className="field"><label>الطابق / الشقة</label><input className="input" value={address.building} onChange={(e) => set('building', e.target.value)} placeholder="مثال: طابق 3، شقة 2" /></div>
+                <div className="field"><label>أقرب معلم</label><input className="input" value={address.landmarks} onChange={(e) => set('landmarks', e.target.value)} placeholder="مسجد، مركز تجاري..." /></div>
+                <div className="field" style={{ gridColumn: '1 / -1' }}><label>وقت التوصيل المفضل</label>
+                  <select className="select" value={address.deliveryTime} onChange={(e) => set('deliveryTime', e.target.value)}>
+                    <option value="">بدون تفضيل</option><option value="morning">صباحاً (9 ص - 12 م)</option><option value="afternoon">ظهراً (12 م - 5 م)</option><option value="evening">مساءً (5 م - 9 م)</option>
+                  </select>
+                </div>
+                <div className="field" style={{ gridColumn: '1 / -1' }}><label>ملاحظات إضافية</label><textarea className="textarea" value={address.notes} onChange={(e) => set('notes', e.target.value)} placeholder="أي تفاصيل تساعد فريق المبيعات..." /></div>
               </div>
-              <div className="field"><label>المدينة / المنطقة *</label><input className="input" required value={address.area} onChange={(e) => set('area', e.target.value)} placeholder="مثال: المالكي" /></div>
-              <div className="field"><label>الرمز البريدي</label><input className="input" dir="ltr" value={address.postalCode} onChange={(e) => set('postalCode', e.target.value)} placeholder="اختياري" /></div>
-              <div className="field" style={{ gridColumn: '1 / -1' }}><label>الشارع والتفاصيل *</label><input className="input" required value={address.street} onChange={(e) => set('street', e.target.value)} placeholder="اسم الشارع، رقم المبنى" /></div>
-              <div className="field"><label>الطابق / الشقة</label><input className="input" value={address.building} onChange={(e) => set('building', e.target.value)} placeholder="مثال: طابق 3، شقة 2" /></div>
-              <div className="field"><label>أقرب معلم</label><input className="input" value={address.landmarks} onChange={(e) => set('landmarks', e.target.value)} placeholder="مسجد، مركز تجاري..." /></div>
-              <div className="field" style={{ gridColumn: '1 / -1' }}><label>وقت التوصيل المفضل</label>
-                <select className="select" value={address.deliveryTime} onChange={(e) => set('deliveryTime', e.target.value)}>
-                  <option value="">بدون تفضيل</option><option value="morning">صباحاً (9 ص - 12 م)</option><option value="afternoon">ظهراً (12 م - 5 م)</option><option value="evening">مساءً (5 م - 9 م)</option>
-                </select>
+            </form>
+
+            {/* Optional map location, stored with the order and printed in the report. */}
+            <div className="co-map-section">
+              <h4 className="co-map-title"><MapPin size={18} color="var(--plum-600)" /> موقع التوصيل على الخريطة</h4>
+              <p className="muted co-map-hint">اختياري — حدّد الموقع بالضغط على الخريطة أو ابحث عن العنوان ليسهل على المندوب الوصول إلى جهتك.</p>
+              <div className="co-map">
+                <LocationPicker value={pickedLocation} onChange={handleLocationChange} />
               </div>
-              <div className="field" style={{ gridColumn: '1 / -1' }}><label>ملاحظات إضافية</label><textarea className="textarea" value={address.notes} onChange={(e) => set('notes', e.target.value)} placeholder="أي تفاصيل تساعد فريق المبيعات..." /></div>
             </div>
           </div>
 
@@ -167,7 +205,7 @@ export function CheckoutPage() {
         </div>
 
         {/* Summary */}
-        <div className="card card-pad" style={{ position: 'sticky', top: 84 }}>
+        <div className="card card-pad co-summary" style={{ position: 'sticky', top: 84 }}>
           <h3 className="row" style={{ fontSize: 18, marginBottom: 18 }}><FileText size={18} color="var(--plum-600)" /> ملخص الطلب</h3>
           {details.map(({ line, p, v, price }) => (
             <div key={v.id} className="row-between" style={{ fontSize: 13, marginBottom: 10 }}>
@@ -180,10 +218,10 @@ export function CheckoutPage() {
           <div className="row-between" style={{ marginBottom: 16, fontSize: 14 }}><span className="muted">الشحن التقديري</span><strong>{shipping === 0 ? 'مجاني' : formatMoney(shipping)}</strong></div>
           <div className="row-between" style={{ marginBottom: 8 }}><strong>الإجمالي التقديري</strong><strong style={{ fontSize: 22, color: 'var(--plum-700)' }}>{formatMoney(total)}</strong></div>
           <p className="muted" style={{ fontSize: 11, marginBottom: 18, lineHeight: 1.7 }}>السعر تقديري وقد يتغير بعد مراجعة فريق المبيعات.</p>
-          <button type="submit" className="btn btn-primary btn-lg btn-block"><FileText size={16} /> إرسال طلب الشراء</button>
+          <button type="submit" form="co-order-form" className="btn btn-primary btn-lg btn-block co-submit"><FileText size={16} /> إرسال طلب الشراء</button>
           <p className="muted center" style={{ fontSize: 11, marginTop: 12 }}>لن يتم تحقيق أي دفع داخل التطبيق.</p>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

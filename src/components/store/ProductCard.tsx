@@ -3,11 +3,14 @@ import { Star, ShoppingBag, Heart } from 'lucide-react';
 import type { Product } from '@/types';
 import { productMinPrice, formatMoney } from '@/data/store';
 import { useCart } from '@/state/CartContext';
+import { useFavorites } from '@/state/FavoritesContext';
 import { useToast } from '@/components/ui/Toast';
 
 export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
+  const { has, toggle } = useFavorites();
   const toast = useToast();
+  const favorite = has(product.id);
   const first = product.variants.find((v) => v.stock > 0) || product.variants[0];
   if (!first) return null;
   const hasSale = first.salePrice !== null;
@@ -31,7 +34,7 @@ export function ProductCard({ product }: { product: Product }) {
           {hasSale && <span className="badge badge-danger" style={{ fontSize: 10 }}>{Math.round((1 - first.salePrice! / first.retailPrice) * 100)}% خصم</span>}
           {outOfStock && <span className="badge badge-neutral" style={{ fontSize: 10 }}>نفد المخزون</span>}
         </div>
-        <button className="product-fav" onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.dispatchEvent(new CustomEvent('luma:favorite', { detail: product.id })); toast.show('تم تحديث المفضلة', 'info'); }} aria-label="مفضلة"><Heart size={18} /></button>
+        <button className={`product-fav ${favorite ? 'is-active' : ''}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); const now = toggle(product.id); toast.show(now ? 'تمت الإضافة للمفضلة' : 'تمت الإزالة من المفضلة', 'success'); }} aria-label={favorite ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}><Heart size={18} fill={favorite ? 'currentColor' : 'none'} /></button>
         <button className="product-add" onClick={quickAdd} disabled={outOfStock} aria-label="أضف للسلة"><ShoppingBag size={18} /></button>
       </div>
       <div className="product-info">

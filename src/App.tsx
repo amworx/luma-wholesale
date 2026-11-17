@@ -15,6 +15,7 @@ import { SalesProducts } from '@/pages/sales/SalesProducts';
 import { SalesInventory } from '@/pages/sales/SalesInventory';
 import { SalesCategories } from '@/pages/sales/SalesCategories';
 import { SalesOrders } from '@/pages/sales/SalesOrders';
+import { SalesEnquiries, AdminEnquiries } from '@/pages/sales/SalesEnquiries';
 import { AdminOverview } from '@/pages/admin/AdminOverview';
 import { AdminOrders } from '@/pages/admin/AdminOrders';
 import { AdminProducts } from '@/pages/admin/AdminProducts';
@@ -61,6 +62,7 @@ export default function App() {
         <Route path="inventory" element={<SalesInventory />} />
         <Route path="categories" element={<SalesCategories />} />
         <Route path="orders" element={<SalesOrders />} />
+        <Route path="enquiries" element={<SalesEnquiries />} />
       </Route>
 
       {/* Admin dashboard */}
@@ -72,6 +74,7 @@ export default function App() {
         <Route path="users" element={<AdminUsers />} />
         <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="settings" element={<AdminSettings />} />
+        <Route path="enquiries" element={<AdminEnquiries />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/store" replace />} />

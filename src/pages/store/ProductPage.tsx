@@ -1,28 +1,162 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Star, ShoppingBag, Truck, ShieldCheck, RotateCcw, Minus, Plus, Heart, ChevronLeft } from 'lucide-react';
-import { useData, effectivePrice, formatMoney } from '@/data/store';
+import {
+  Star, ShoppingBag, Truck, ShieldCheck, RotateCcw, Minus, Plus, Heart,
+  ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, Share2, X, Maximize2,
+  MessageSquareText, Send,
+} from 'lucide-react';
+import { useData, useSession, store, effectivePrice, formatMoney } from '@/data/store';
 import { useCart } from '@/state/CartContext';
+import { useFavorites } from '@/state/FavoritesContext';
 import { useToast } from '@/components/ui/Toast';
 import { ProductCard } from '@/components/store/ProductCard';
 import { EmptyState } from '@/components/ui/Common';
+import type { EnquiryType } from '@/types';
+
+const MIN_SCALE = 0.5;
+const MAX_SCALE = 3;
+const SCALE_STEP = 0.25;
 
 export function ProductPage() {
   const { id } = useParams();
   const data = useData();
+  const session = useSession();
   const { add } = useCart();
+  const favorites = useFavorites();
   const toast = useToast();
+
+  const product = data?.products.find((p) => p.id === id) ?? null;
+  const images = product?.images ?? [];
+
   const [variantId, setVariantId] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<'desc' | 'shipping' | 'reviews'>('desc');
 
+  // Image viewer state
+  const [activeImage, setActiveImage] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [rotation, setRotation] = useState(0);
+
+  // Enquiry form state
+  const [enquiryType, setEnquiryType] = useState<EnquiryType>('info');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [message, setMessage] = useState('');
+
+  const goToImage = useCallback((delta: number) => {
+    setActiveImage((current) => {
+      if (images.length === 0) return 0;
+      return (current + delta + images.length) % images.length;
+    });
+  }, [images.length]);
+
+  const closeViewer = useCallback(() => setViewerOpen(false), []);
+
+  // Keyboard support while the lightbox is open. In RTL, ArrowLeft moves to the
+  // next image (visually left) and ArrowRight goes back.
+  useEffect(() => {
+    if (!viewerOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeViewer();
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        goToImage(1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        goToImage(-1);
+      } else if (event.key === '+' || event.key === '=') {
+        setScale((s) => Math.min(MAX_SCALE, +(s + SCALE_STEP).toFixed(2)));
+      } else if (event.key === '-' || event.key === '_') {
+        setScale((s) => Math.max(MIN_SCALE, +(s - SCALE_STEP).toFixed(2)));
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [viewerOpen, goToImage, closeViewer]);
+
+  // A route change to a different product should never leave a stale viewer open.
+  useEffect(() => {
+    setActiveImage(0);
+    setViewerOpen(false);
+    setScale(1);
+    setRotation(0);
+  }, [id]);
+
   if (!data) return null;
-  const product = data.products.find((p) => p.id === id);
-  if (!product) return <div className="container" style={{ padding: 40 }}><EmptyState title="المنتج غير موجود" action={<Link to="/store" className="btn btn-primary">العودة للمتجر</Link>} /></div>;
+  if (!product) {
+    return (
+      <div className="container" style={{ padding: 40 }}>
+        <EmptyState title="المنتج غير موجود" action={<Link to="/store" className="btn btn-primary">العودة للمتجر</Link>} />
+      </div>
+    );
+  }
 
   const activeVariant = product.variants.find((v) => v.id === variantId) || product.variants[0];
   const price = effectivePrice(activeVariant);
   const related = data.products.filter((p) => p.categoryId === product.categoryId && p.id !== product.id).slice(0, 5);
+  const currentImage = images[Math.min(activeImage, Math.max(0, images.length - 1))] ?? '';
+  const isFavorite = favorites.has(product.id);
+
+  const openViewer = (index: number) => {
+    setActiveImage(index);
+    setScale(1);
+    setRotation(0);
+    setViewerOpen(true);
+  };
+
+  const shareProduct = async () => {
+    const url = window.location.href;
+    try {
+      if (typeof navigator.share === 'function') {
+        await navigator.share({ title: product.nameAr, url });
+        return;
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.show('تم نسخ رابط المنتج', 'success');
+      } else {
+        toast.show('تعذر نسخ الرابط', 'error');
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      toast.show('تعذرت مشاركة الرابط', 'error');
+    }
+  };
+
+  const toggleFavorite = () => {
+    const nowFavorite = favorites.toggle(product.id);
+    toast.show(nowFavorite ? 'تمت الإضافة إلى المفضلة' : 'تمت الإزالة من المفضلة', 'success');
+  };
+
+  const submitEnquiry = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const name = customerName.trim();
+    const phone = customerPhone.trim();
+    const text = message.trim();
+    if (!name || !phone || !text) {
+      toast.show('يرجى إدخال الاسم ورقم الهاتف والرسالة', 'error');
+      return;
+    }
+    store.upsertEnquiry({
+      id: 'q-' + Date.now(),
+      productId: product.id,
+      productNameAr: product.nameAr,
+      customerId: session?.userId || null,
+      customerName: name,
+      customerPhone: phone,
+      type: enquiryType,
+      message: text,
+      handled: false,
+      createdAt: new Date().toISOString(),
+    });
+    toast.show('تم إرسال طلبك إلى فريق المبيعات', 'success');
+    setCustomerName('');
+    setCustomerPhone('');
+    setMessage('');
+    setEnquiryType('info');
+  };
 
   const addToCart = () => {
     if (activeVariant.stock === 0) return;
@@ -38,15 +172,31 @@ export function ProductPage() {
         <span>{product.nameAr}</span>
       </div>
 
-      <div className="product-detail" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'start' }}>
+      <div className="product-detail">
         {/* Images */}
         <div>
-          <div className="card" style={{ overflow: 'hidden', borderRadius: 'var(--r-xl)', aspectRatio: 1 }}>
-            <img src={product.images[0]} alt={product.nameAr} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div className="card product-main-image">
+            <button type="button" className="product-image-button" onClick={() => openViewer(activeImage)} aria-label="عرض الصورة بحجم كبير">
+              <img src={currentImage} alt={product.nameAr} />
+              <span className="product-image-zoom"><Maximize2 size={16} /> تكبير الصورة</span>
+            </button>
           </div>
-          <div className="row" style={{ gap: 10, marginTop: 12 }}>
-            {product.images.map((im, i) => <div key={i} style={{ width: 72, height: 72, borderRadius: 12, overflow: 'hidden', border: '2px solid var(--plum-700)' }}><img src={im} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>)}
-          </div>
+          {images.length > 1 && (
+            <div className="product-thumbs">
+              {images.map((im, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`product-thumb ${i === activeImage ? 'active' : ''}`}
+                  onClick={() => setActiveImage(i)}
+                  aria-label={`عرض الصورة ${i + 1}`}
+                  aria-pressed={i === activeImage}
+                >
+                  <img src={im} alt="" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Info */}
@@ -93,9 +243,9 @@ export function ProductPage() {
               {activeVariant.stock > 5 ? 'متوفر' : activeVariant.stock > 0 ? `بقي ${activeVariant.stock} فقط` : 'نفد المخزون'}
             </span>
             <div className="row" style={{ gap: 0, border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
-              <button className="btn-icon" onClick={() => setQty(Math.max(1, qty - 1))}><Minus size={16} /></button>
+              <button className="btn-icon" onClick={() => setQty(Math.max(1, qty - 1))} aria-label="تقليل الكمية"><Minus size={16} /></button>
               <span style={{ width: 36, textAlign: 'center', fontWeight: 800 }}>{qty}</span>
-              <button className="btn-icon" onClick={() => setQty(Math.min(activeVariant.stock, qty + 1))}><Plus size={16} /></button>
+              <button className="btn-icon" onClick={() => setQty(Math.min(activeVariant.stock, qty + 1))} aria-label="زيادة الكمية"><Plus size={16} /></button>
             </div>
           </div>
 
@@ -103,7 +253,15 @@ export function ProductPage() {
             <button className="btn btn-primary btn-lg grow" onClick={addToCart} disabled={activeVariant.stock === 0}>
               <ShoppingBag size={19} /> {activeVariant.stock === 0 ? 'غير متوفر' : 'أضف إلى السلة'}
             </button>
-            <button className="btn btn-outline btn-lg" onClick={() => toast.show('تمت الإضافة للمفضلة', 'info')} title="مفضلة"><Heart size={20} /></button>
+            <button
+              className={`btn btn-outline btn-lg favorite-btn ${isFavorite ? 'active' : ''}`}
+              onClick={toggleFavorite}
+              title={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+              aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+              aria-pressed={isFavorite}
+            >
+              <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} />
+            </button>
           </div>
 
           <div className="card" style={{ padding: 14, display: 'grid', gap: 10 }}>
@@ -126,11 +284,96 @@ export function ProductPage() {
         {tab === 'reviews' && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink-500)' }}><Star size={32} color="var(--gold-500)" /><h3 style={{ fontSize: 22, margin: '8px 0' }}>{product.rating} / 5</h3><p>بناءً على {product.reviewCount} تقييم من عملائنا.</p></div>}
       </div>
 
+      {/* Request information / feedback */}
+      <section className="card enquiry-card">
+        <div className="row" style={{ gap: 10, marginBottom: 6 }}>
+          <MessageSquareText size={22} color="var(--plum-700)" />
+          <h2 style={{ fontSize: 20 }}>اطلب معلومات أو أرسل ملاحظة</h2>
+        </div>
+        <p className="muted" style={{ fontSize: 13, marginBottom: 18 }}>
+          يرسل هذا النموذج طلبك مباشرة إلى فريق المبيعات لمراجعته والرد عليه.
+        </p>
+        <form className="enquiry-form" onSubmit={submitEnquiry}>
+          <div className="field">
+            <label htmlFor="enquiry-type">نوع الطلب</label>
+            <select id="enquiry-type" className="select" value={enquiryType} onChange={(e) => setEnquiryType(e.target.value as EnquiryType)}>
+              <option value="info">طلب معلومات</option>
+              <option value="feedback">ملاحظة</option>
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="enquiry-name">الاسم</label>
+            <input id="enquiry-name" className="input" type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="الاسم الكامل" required />
+          </div>
+          <div className="field">
+            <label htmlFor="enquiry-phone">رقم الهاتف</label>
+            <input id="enquiry-phone" className="input" type="tel" inputMode="tel" dir="ltr" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="رقم التواصل" required />
+          </div>
+          <div className="field enquiry-message">
+            <label htmlFor="enquiry-message">الرسالة</label>
+            <textarea id="enquiry-message" className="textarea" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="اكتب تفاصيل طلبك أو ملاحظتك" required />
+          </div>
+          <div className="enquiry-submit">
+            <button type="submit" className="btn btn-primary btn-lg"><Send size={18} /> إرسال الطلب</button>
+          </div>
+        </form>
+      </section>
+
       {related.length > 0 && (
         <section style={{ marginTop: 50 }}>
           <h2 className="section-title" style={{ marginBottom: 20, fontSize: 24 }}>قد يعجبك أيضاً</h2>
           <div className="products-grid">{related.map((p) => <ProductCard key={p.id} product={p} />)}</div>
         </section>
+      )}
+
+      {/* Fullscreen image viewer */}
+      {viewerOpen && images.length > 0 && (
+        <div
+          className="image-viewer-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`عارض صور ${product.nameAr}`}
+          onClick={closeViewer}
+        >
+          <div className="viewer-toolbar" onClick={(e) => e.stopPropagation()}>
+            <span className="viewer-title">{product.nameAr} <span className="viewer-count">({activeImage + 1} / {images.length})</span></span>
+            <div className="viewer-actions">
+              <button type="button" className="viewer-btn" onClick={() => setScale((s) => Math.max(MIN_SCALE, +(s - SCALE_STEP).toFixed(2)))} title="تصغير" aria-label="تصغير"><ZoomOut size={22} /></button>
+              <button type="button" className="viewer-btn" onClick={() => setScale((s) => Math.min(MAX_SCALE, +(s + SCALE_STEP).toFixed(2)))} title="تكبير" aria-label="تكبير"><ZoomIn size={22} /></button>
+              <button type="button" className="viewer-btn" onClick={() => setRotation((r) => r - 90)} title="تدوير لليسار" aria-label="تدوير لليسار"><RotateCcw size={22} /></button>
+              <button type="button" className="viewer-btn" onClick={() => setRotation((r) => r + 90)} title="تدوير لليمين" aria-label="تدوير لليمين"><RotateCw size={22} /></button>
+              <button type="button" className="viewer-btn" onClick={shareProduct} title="مشاركة" aria-label="مشاركة"><Share2 size={22} /></button>
+              <button type="button" className="viewer-btn close" onClick={closeViewer} title="إغلاق" aria-label="إغلاق"><X size={24} /></button>
+            </div>
+          </div>
+
+          <div className="image-viewer-stage" onClick={(e) => e.stopPropagation()}>
+            {images.length > 1 && (
+              <button type="button" className="viewer-nav prev" onClick={() => goToImage(-1)} title="الصورة السابقة" aria-label="الصورة السابقة"><ChevronRight size={28} /></button>
+            )}
+            <img className="image-viewer-img" src={currentImage} alt={product.nameAr} style={{ transform: `rotate(${rotation}deg) scale(${scale})` }} />
+            {images.length > 1 && (
+              <button type="button" className="viewer-nav next" onClick={() => goToImage(1)} title="الصورة التالية" aria-label="الصورة التالية"><ChevronLeft size={28} /></button>
+            )}
+          </div>
+
+          {images.length > 1 && (
+            <div className="viewer-thumbs" onClick={(e) => e.stopPropagation()}>
+              {images.map((im, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`viewer-thumb ${i === activeImage ? 'active' : ''}`}
+                  onClick={() => setActiveImage(i)}
+                  aria-label={`عرض الصورة ${i + 1}`}
+                  aria-pressed={i === activeImage}
+                >
+                  <img src={im} alt="" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

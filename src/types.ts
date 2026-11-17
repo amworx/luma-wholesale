@@ -23,6 +23,7 @@ export interface Category {
   color: string;
   active: boolean;
   sortOrder: number;
+  parentId: string | null; // null = top-level category; otherwise a subcategory
 }
 
 export interface ProductVariant {
@@ -91,10 +92,13 @@ export interface ShippingAddress {
   companyName: string;       // business / pharmacy / salon name
   phone2: string;            // secondary phone
   email: string;
-  postalCode: string;
   building: string;          // building / floor / apartment
   landmarks: string;         // nearest landmark
   deliveryTime: string;      // preferred delivery time
+  // Map-based location pick (OpenStreetMap / Leaflet, no API key needed).
+  latitude: number | null;
+  longitude: number | null;
+  mapLabel: string;          // human-readable place name from the map
 }
 
 export interface Order {
@@ -127,6 +131,20 @@ export interface CartLine {
   quantity: number;
 }
 
+export type EnquiryType = 'info' | 'feedback';
+export interface ProductEnquiry {
+  id: string;
+  productId: string;
+  productNameAr: string;
+  customerId: string | null;
+  customerName: string;
+  customerPhone: string;
+  type: EnquiryType;
+  message: string;
+  handled: boolean;
+  createdAt: string;
+}
+
 export interface StoreSettings {
   storeNameAr: string;
   storeNameEn: string;
@@ -151,6 +169,7 @@ export interface AppData {
   categories: Category[];
   products: Product[];
   orders: Order[];
+  enquiries: ProductEnquiry[];
   settings: StoreSettings;
 }
 

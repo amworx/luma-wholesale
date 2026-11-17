@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Tags, ShoppingCart, Users, Settings, Store, LogOut, Menu, X, BarChart3, Truck, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Package, Tags, ShoppingCart, Users, Settings, Store, LogOut, Menu, X, BarChart3, Truck, ShieldCheck, MessageSquare } from 'lucide-react';
 import { useData, useSession, store } from '@/data/store';
 
 interface NavItem { to: string; label: string; icon: React.ReactNode; end?: boolean }
@@ -18,6 +18,7 @@ export function DashboardLayout({ mode }: { mode: 'admin' | 'sales' }) {
     { to: '/admin/categories', label: 'الفئات', icon: <Tags size={19} /> },
     { to: '/admin/users', label: 'المستخدمون والصلاحيات', icon: <Users size={19} /> },
     { to: '/admin/analytics', label: 'التحليلات', icon: <BarChart3 size={19} /> },
+    { to: '/admin/enquiries', label: 'الاستفسارات', icon: <MessageSquare size={19} /> },
     { to: '/admin/settings', label: 'إعدادات المتجر', icon: <Settings size={19} /> },
   ];
   const salesNav: NavItem[] = [
@@ -26,6 +27,7 @@ export function DashboardLayout({ mode }: { mode: 'admin' | 'sales' }) {
     { to: '/sales/inventory', label: 'المخزون', icon: <Truck size={19} /> },
     { to: '/sales/categories', label: 'الفئات', icon: <Tags size={19} /> },
     { to: '/sales/orders', label: 'الطلبات', icon: <ShoppingCart size={19} /> },
+    { to: '/sales/enquiries', label: 'الاستفسارات', icon: <MessageSquare size={19} /> },
   ];
   const nav = mode === 'admin' ? adminNav : salesNav;
   const accent = mode === 'admin' ? 'var(--plum-700)' : 'var(--info)';

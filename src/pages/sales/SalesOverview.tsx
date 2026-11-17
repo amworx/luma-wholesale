@@ -11,6 +11,7 @@ export function SalesOverview() {
   const lowStock = data.products.filter((p) => p.variants.some((v) => v.stock <= v.lowStockThreshold));
   const inventoryValue = data.products.reduce((s, p) => s + p.variants.reduce((a, v) => a + v.costPrice * v.stock, 0), 0);
   const newOrders = data.orders.filter((o) => o.status === 'new').length;
+  const openEnquiries = data.enquiries.filter((e) => !e.handled).length;
 
   return (
     <div>
@@ -43,9 +44,11 @@ export function SalesOverview() {
             <div className="row-between"><span className="muted">قيمة المخزون (التكلفة)</span><strong style={{ color: 'var(--plum-700)' }}>{formatMoney(inventoryValue)}</strong></div>
             <div className="row-between"><span className="muted">الفئات النشطة</span><strong>{data.categories.filter((c) => c.active).length}</strong></div>
             <div className="row-between"><span className="muted">إجمالي الطلبات</span><strong>{data.orders.length}</strong></div>
+            <div className="row-between"><span className="muted">استفسارات جديدة</span><strong>{openEnquiries}</strong></div>
             <div className="row-between"><span className="muted">منتجات مميزة</span><strong>{data.products.filter((p) => p.isFeatured).length}</strong></div>
           </div>
-          <Link to="/sales/products" className="btn btn-outline btn-block" style={{ marginTop: 22 }}>إضافة أو تعديل المنتجات</Link>
+          <Link to="/sales/enquiries" className="btn btn-outline btn-block" style={{ marginTop: 12 }}>الاستفسارات والملاحظات</Link>
+          <Link to="/sales/products" className="btn btn-outline btn-block" style={{ marginTop: 8 }}>إضافة أو تعديل المنتجات</Link>
         </div>
       </div>
     </div>

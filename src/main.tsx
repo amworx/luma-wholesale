@@ -4,14 +4,19 @@ import { HashRouter } from 'react-router-dom';
 import App from './App';
 import { ToastProvider } from '@/components/ui/Toast';
 import { CartProvider } from '@/state/CartContext';
+import { FavoritesProvider } from '@/state/FavoritesContext';
+import { ScrollToTop } from './components/layout/ScrollToTop';
 import './styles/global.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HashRouter>
+      <ScrollToTop />
       <ToastProvider>
         <CartProvider>
-          <App />
+          <FavoritesProvider>
+            <App />
+          </FavoritesProvider>
         </CartProvider>
       </ToastProvider>
     </HashRouter>

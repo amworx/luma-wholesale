@@ -2,8 +2,8 @@ import { useSyncExternalStore } from 'react';
 import type { AppData, Session, User, Category, Product, Order, StoreSettings } from '@/types';
 import { createSeedData } from './seed';
 
-// v2: USD pricing, Syrian context, wholesale/neutral copy, richer shipping address.
-// Bumping the key makes every browser pick up the new seed automatically.
+// v2 key is kept deliberately: we migrate old data in place so the client's
+// edits (store name, users, settings, orders) survive app updates.
 const DATA_KEY = 'luma.data.v2';
 const SESSION_KEY = 'luma.session.v1';
 
@@ -28,12 +28,29 @@ export class LocalAdapter implements DataAdapter {
       const raw = localStorage.getItem(DATA_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as AppData;
-        // Normalize legacy relative image paths to root-absolute so images
-        // resolve correctly on nested routes and after deployment.
-        parsed.products = parsed.products.map((p) => ({
+        // Migrate legacy data in place; never discard the client's edits.
+        parsed.products = (parsed.products || []).map((p) => ({
           ...p,
-          images: p.images.map((im) => im.startsWith('./') ? im.slice(1) : im),
+          images: (p.images || []).map((im) => im.startsWith('./') ? im.slice(1) : im),
         }));
+        parsed.orders = (parsed.orders || []).map((o) => ({
+          ...o,
+          address: {
+            ...o.address,
+            latitude: o.address?.latitude ?? null,
+            longitude: o.address?.longitude ?? null,
+            mapLabel: o.address?.mapLabel ?? '',
+          },
+        }));
+        // v2 categories had no parentId; treat them all as top-level.
+        parsed.categories = (parsed.categories || []).map((c) => ({ ...c, parentId: c.parentId ?? null }));
+        // Merge in any newly seeded subcategories without overwriting existing ones.
+        const seed = createSeedData();
+        const catIds = new Set(parsed.categories.map((c) => c.id));
+        parsed.categories = [...parsed.categories, ...seed.categories.filter((c) => !catIds.has(c.id))];
+        parsed.enquiries = parsed.enquiries || [];
+        parsed.settings = { ...seed.settings, ...parsed.settings };
+        parsed.version = 3;
         return parsed;
       }
     } catch {
@@ -160,6 +177,16 @@ class Store {
   }
   deleteOrder(id: string) {
     this.update((d) => ({ ...d, orders: d.orders.filter((o) => o.id !== id) }));
+  }
+  upsertEnquiry(enquiry: import('@/types').ProductEnquiry) {
+    this.update((d) => ({ ...d, enquiries: d.enquiries.some((e) => e.id === enquiry.id)
+      ? d.enquiries.map((e) => e.id === enquiry.id ? enquiry : e) : [...d.enquiries, enquiry] }));
+  }
+  setEnquiryHandled(id: string, handled: boolean) {
+    this.update((d) => ({ ...d, enquiries: d.enquiries.map((e) => e.id === id ? { ...e, handled } : e) }));
+  }
+  deleteEnquiry(id: string) {
+    this.update((d) => ({ ...d, enquiries: d.enquiries.filter((e) => e.id !== id) }));
   }
   setSettings(settings: StoreSettings) {
     this.update((d) => ({ ...d, settings }));
