@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<rect width="400" height="400" fill="#f9eef6"/>
+<ellipse cx="200" cy="360" rx="120" ry="18" fill="#e6d0de"/>
+<rect x="180" y="70" width="40" height="30" rx="4" fill="#a85480"/>
+<rect x="188" y="98" width="24" height="24" fill="#c9a86a"/>
+<rect x="140" y="120" width="120" height="230" rx="20" fill="#d98cb3"/>
+<rect x="140" y="200" width="120" height="90" fill="#fff" opacity="0.8"/>
+<text x="200" y="240" font-family="Arial" font-size="16" fill="#a85480" text-anchor="middle" letter-spacing="2">ROSE NOIR</text>
+<text x="200" y="262" font-family="Arial" font-size="10" fill="#999" text-anchor="middle">EAU DE PARFUM</text>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<rect width="400" height="400" fill="#f2f7f3"/>
+<ellipse cx="200" cy="360" rx="110" ry="18" fill="#d8e4da"/>
+<path d="M160 130 h80 l16 210 q-56 20 -112 0 z" fill="#a8cfc0"/>
+<rect x="160" y="105" width="80" height="30" rx="6" fill="#6fa38e"/>
+<text x="200" y="250" font-family="Arial" font-size="14" fill="#6fa38e" text-anchor="middle" letter-spacing="1">CLEANSER</text>
+</svg>

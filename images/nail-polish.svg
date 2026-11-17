@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<rect width="400" height="400" fill="#fbeeec"/>
+<ellipse cx="200" cy="360" rx="100" ry="18" fill="#e8d4d0"/>
+<rect x="176" y="80" width="48" height="60" rx="8" fill="#8e2b20"/>
+<rect x="168" y="138" width="64" height="212" rx="10" fill="#c0392b"/>
+<rect x="168" y="220" width="64" height="80" fill="#fff" opacity="0.8"/>
+<text x="200" y="258" font-family="Arial" font-size="10" fill="#8e2b20" text-anchor="middle" letter-spacing="1">NAIL POLISH</text>
+</svg>
