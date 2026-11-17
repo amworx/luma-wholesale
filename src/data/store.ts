@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { AppData, Session, User, Category, Product, Order, StoreSettings } from '@/types';
 import { createSeedData } from './seed';
+import { cloudEnabled, fetchCloud, saveCloud, subscribeCloud, type CloudRow } from './cloud';
 
 // v2 key is kept deliberately: we migrate old data in place so the client's
 // edits (store name, users, settings, orders) survive app updates.
@@ -49,6 +50,15 @@ export class LocalAdapter implements DataAdapter {
         const catIds = new Set(parsed.categories.map((c) => c.id));
         parsed.categories = [...parsed.categories, ...seed.categories.filter((c) => !catIds.has(c.id))];
         parsed.enquiries = parsed.enquiries || [];
+        // Carry over favorites from the old standalone localStorage key.
+        let migratedFavorites: string[] = parsed.favoriteIds || [];
+        if (!parsed.favoriteIds) {
+          try {
+            const old = JSON.parse(localStorage.getItem('luma.favorites.v1') || '[]');
+            if (Array.isArray(old)) migratedFavorites = old.filter((x) => typeof x === 'string');
+          } catch { /* ignore */ }
+        }
+        parsed.favoriteIds = migratedFavorites;
         parsed.settings = { ...seed.settings, ...parsed.settings };
         parsed.version = 3;
         return parsed;
@@ -70,6 +80,66 @@ export class LocalAdapter implements DataAdapter {
   }
 }
 
+/**
+ * CloudAdapter keeps one shared document in Supabase and mirrors it into
+ * localStorage as an offline cache. A realtime subscription pushes changes
+ * from the laptop to the phone (and back) without a refresh.
+ */
+export class CloudAdapter implements DataAdapter {
+  private lastUpdatedAt: string | null = null;
+  private onRemoteChange: ((data: AppData) => void) | null = null;
+
+  /** Called by Store so incoming realtime rows update React state. */
+  setRemoteListener(fn: (data: AppData) => void) {
+    this.onRemoteChange = fn;
+    subscribeCloud((row: CloudRow) => {
+      // Ignore our own writes echoed back by realtime.
+      if (row.updated_at === this.lastUpdatedAt) return;
+      this.lastUpdatedAt = row.updated_at;
+      localStorage.setItem(DATA_KEY, JSON.stringify(row.data));
+      this.onRemoteChange?.(row.data);
+    });
+  }
+
+  async load(): Promise<AppData> {
+    const remote = await fetchCloud();
+    if (remote?.data && Object.keys(remote.data).length) {
+      this.lastUpdatedAt = remote.updated_at;
+      // Clear any stale session whose user no longer exists in shared data.
+      localStorage.setItem(DATA_KEY, JSON.stringify(remote.data));
+      return remote.data;
+    }
+    // Offline or empty cloud: use the local cache, then the seed.
+    const cached = await new LocalAdapter().load();
+    // If the cloud row exists but is empty, publish this device's data so the
+    // other device can see it straight away (no need to wait for an edit).
+    if (remote && (!remote.data || !Object.keys(remote.data).length)) {
+      void this.save(cached);
+    }
+    return cached;
+  }
+
+  async save(data: AppData): Promise<void> {
+    // Always keep the offline cache current, even if the write fails.
+    localStorage.setItem(DATA_KEY, JSON.stringify(data));
+    const result = await saveCloud(data, this.lastUpdatedAt);
+    if (result.ok && result.row) {
+      this.lastUpdatedAt = result.row.updated_at;
+    } else if (result.conflict && result.row) {
+      // A newer remote row exists (another device edited first): adopt it.
+      this.lastUpdatedAt = result.row.updated_at;
+      localStorage.setItem(DATA_KEY, JSON.stringify(result.row.data));
+      this.onRemoteChange?.(result.row.data);
+    }
+  }
+
+  async reset(): Promise<AppData> {
+    const seed = createSeedData();
+    await this.save(seed);
+    return seed;
+  }
+}
+
 type Listener = () => void;
 
 class Store {
@@ -83,6 +153,17 @@ class Store {
 
   constructor(adapter: DataAdapter) {
     this.adapter = adapter;
+    if (adapter instanceof CloudAdapter) {
+      // Realtime rows replace in-memory state and re-render every subscriber.
+      adapter.setRemoteListener((data) => {
+        this.data = data;
+        if (this.session) {
+          const u = data.users.find((x) => x.id === this.session!.userId);
+          if (!u || !u.active) this.setSession(null);
+        }
+        this.listeners.forEach((l) => l());
+      });
+    }
     const rawSession = localStorage.getItem(SESSION_KEY);
     if (rawSession) {
       try { this.session = JSON.parse(rawSession) as Session; } catch { /* ignore */ }
@@ -188,6 +269,9 @@ class Store {
   deleteEnquiry(id: string) {
     this.update((d) => ({ ...d, enquiries: d.enquiries.filter((e) => e.id !== id) }));
   }
+  setFavorites(ids: string[]) {
+    this.update((d) => ({ ...d, favoriteIds: ids }));
+  }
   setSettings(settings: StoreSettings) {
     this.update((d) => ({ ...d, settings }));
   }
@@ -218,7 +302,8 @@ class Store {
   }
 }
 
-export const store = new Store(new LocalAdapter());
+// One shared cloud document when configured; otherwise a per-device demo store.
+export const store = new Store(cloudEnabled ? new CloudAdapter() : new LocalAdapter());
 
 export function useData(): AppData | null {
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);

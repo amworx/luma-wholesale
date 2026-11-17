@@ -286,6 +286,7 @@ export function createSeedData(): AppData {
     products: structuredClone(seedProducts),
     orders: structuredClone(seedOrders),
     enquiries: [],
+    favoriteIds: [],
     settings: {
       storeNameAr: 'لُما', storeNameEn: 'Luma', taglineAr: 'شريكك الموثوق في مستحضرات التجميل بالجملة',
       currency: 'USD', currencySymbol: '$', currencyPosition: 'before',

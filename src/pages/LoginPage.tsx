@@ -90,7 +90,7 @@ export function LoginPage() {
             </button>
           ))}
         </div>
-        <p className="center muted" style={{ fontSize: 11, marginTop: 20 }}><Sparkles size={12} style={{ verticalAlign: 'middle' }} /> هذه نسخة عرض — البيانات محفوظة على جهازك فقط.</p>
+        <p className="center muted" style={{ fontSize: 11, marginTop: 20 }}><Sparkles size={12} style={{ verticalAlign: 'middle' }} /> هذه نسخة عرض — البيانات متزامنة بين الأجهزة.</p>
       </div>
     </div>
   );

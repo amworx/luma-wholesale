@@ -170,6 +170,7 @@ export interface AppData {
   products: Product[];
   orders: Order[];
   enquiries: ProductEnquiry[];
+  favoriteIds: string[];
   settings: StoreSettings;
 }
 

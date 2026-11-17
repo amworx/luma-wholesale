@@ -28,7 +28,7 @@ A complete **demo** for a retail cosmetics trader. One React app serves three au
 | Sales dashboard | `/sales` | Sales team — products, variants, inventory, categories, orders |
 | Admin dashboard | `/admin` | Owner — everything above plus users, analytics, settings |
 
-The whole thing is Arabic, RTL, and free to run. Data lives in the browser (localStorage), so it works offline and on any Android device with a modern browser.
+The whole thing is Arabic, RTL, and free to run. Data is shared across devices through a free Supabase project with realtime sync, so laptop edits appear on the phone automatically. An offline cache keeps it working when the network is down. See `docs/CLOUD_SYNC.md`.
 
 ## Why a PWA (and not a native APK)
 
