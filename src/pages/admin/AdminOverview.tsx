@@ -28,7 +28,7 @@ export function AdminOverview() {
         <StatCard label="المنتجات" value={String(data.products.length)} sub={`${lowStock} منخفضة المخزون`} icon={<Package size={22} />} tone="gold" />
       </div>
 
-      <div className="grid-2" style={{ marginTop: 22, gridTemplateColumns: '1.3fr 1fr' }}>
+      <div className="grid-2 overview-grid" style={{ marginTop: 22 }}>
         <div className="card card-pad">
           <div className="row-between" style={{ marginBottom: 20 }}><h3 style={{ fontSize: 17 }}>أحدث الطلبات</h3><Link to="/admin/orders" className="btn btn-ghost btn-sm">كل الطلبات <ArrowLeft size={14} /></Link></div>
           {[...data.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5).map((o) => (

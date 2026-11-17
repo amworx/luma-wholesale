@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, Search, X } from 'lucide-react';
-import { useData, productMinPrice, formatMoney } from '@/data/store';
+import { useData, productMinPrice, formatMoney, categoryProductScope } from '@/data/store';
 import { ProductCard } from '@/components/store/ProductCard';
 import { EmptyState } from '@/components/ui/Common';
 import type { Product } from '@/types';
@@ -22,23 +22,34 @@ export function ListingPage({ variant }: { variant: 'all' | 'category' | 'search
 
   const category = data?.categories.find((c) => c.id === categoryId);
 
+  // If we're on a subcategory page, browse it as its parent so the sibling
+  // subcategory chips and product scope make sense.
+  const parentCategory = useMemo(
+    () => (data && categoryId ? data.categories.find((c) => c.id === categoryId) : undefined),
+    [data, categoryId]
+  );
+  const browseId = parentCategory?.parentId ?? categoryId ?? '';
+
   const childCategories = useMemo(
     () => (data && variant === 'category'
-      ? data.categories.filter((c) => c.parentId === categoryId && c.active).sort((a, b) => a.sortOrder - b.sortOrder)
+      ? data.categories.filter((c) => c.parentId === browseId && c.active).sort((a, b) => a.sortOrder - b.sortOrder)
       : []),
-    [data, variant, categoryId]
+    [data, variant, browseId]
   );
 
-  // Ignore a stale subcategory selection left over from another category.
-  const activeSubId = childCategories.some((c) => c.id === selectedSubId) ? selectedSubId : null;
+  // On a subcategory page, preselect that subcategory. Ignore a stale
+  // selection left over from another category.
+  const activeSubId = childCategories.some((c) => c.id === (selectedSubId ?? (parentCategory?.parentId ? categoryId : null)))
+    ? (selectedSubId ?? (parentCategory?.parentId ? categoryId : null))
+    : null;
 
   const { products, brands } = useMemo<{ products: Product[]; brands: string[] }>(() => {
     if (!data) return { products: [], brands: [] };
 
     let list = data.products.filter((p) => p.isActive);
 
-    if (variant === 'category') {
-      const scope = new Set<string>([categoryId || '', ...childCategories.map((c) => c.id)]);
+    if (variant === 'category' && data) {
+      const scope = new Set(categoryProductScope(data, browseId));
       list = list.filter((p) => scope.has(p.categoryId));
     }
     if (variant === 'offers') list = list.filter((p) => p.variants.some((v) => v.salePrice !== null));

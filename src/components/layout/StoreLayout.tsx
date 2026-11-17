@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, User, Home, Grid2X2, Menu, X, Heart, MapPin, Phone, Instagram, Sparkles } from 'lucide-react';
 import { useData, useSession } from '@/data/store';
 import { useCart } from '@/state/CartContext';
+import { MegaMenu } from '@/components/store/MegaMenu';
 
 export function StoreLayout() {
   const data = useData();
@@ -56,15 +57,8 @@ export function StoreLayout() {
           </div>
         </div>
 
-        {/* Desktop categories nav */}
-        <nav className="container" style={{ display: 'flex', gap: 26, overflowX: 'auto', paddingBottom: 0 }}>
-          <NavLink to="/store" end className={navLink}>الرئيسية</NavLink>
-          <NavLink to="/store/categories" className={navLink}>كل المنتجات</NavLink>
-          {data?.categories.filter((c) => c.active).map((c) => (
-            <NavLink key={c.id} to={`/store/category/${c.id}`} className={navLink}>{c.nameAr}</NavLink>
-          ))}
-          <NavLink to="/store/offers" className="store-nav offers">العروض</NavLink>
-        </nav>
+        {/* Category navigation with mega menu */}
+        <MegaMenu />
       </header>
 
       {menuOpen && (
@@ -134,4 +128,3 @@ export function StoreLayout() {
   );
 }
 
-const navLink = ({ isActive }: { isActive: boolean }) => `store-nav ${isActive ? 'active' : ''}`;

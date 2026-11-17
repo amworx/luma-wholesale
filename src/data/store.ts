@@ -23,46 +23,61 @@ export interface DataAdapter {
   reset(): Promise<AppData>;
 }
 
+/** Known seed products that should live under a subcategory (v4 migration). */
+const SUBCATEGORY_BY_PRODUCT: Record<string, string> = {
+  'p-lip-velvet': 'c-lips-matte', 'p-lip-coral': 'c-lips-matte', 'p-lip-nude': 'c-lips-matte',
+  'p-lipgloss': 'c-lips-gloss', 'p-serum-glow': 'c-skin-serum', 'p-serum-ha': 'c-skin-serum',
+  'p-cream': 'c-skin-cream', 'p-cleanser': 'c-skin-cream',
+  'p-perfume-rose': 'c-fragrance-women', 'p-perfume-amber': 'c-fragrance-oud',
+};
+
+/**
+ * Migrate legacy data in place, preserving every client edit. Applied to both
+ * local and cloud data so an old shared document is upgraded on first load.
+ */
+function migrateData(parsed: AppData): AppData {
+  const seed = createSeedData();
+  parsed.products = (parsed.products || []).map((p) => ({
+    ...p,
+    images: (p.images || []).map((im) => im.startsWith('./') ? im.slice(1) : im),
+  }));
+  parsed.orders = (parsed.orders || []).map((o) => ({
+    ...o,
+    address: {
+      ...o.address,
+      latitude: o.address?.latitude ?? null,
+      longitude: o.address?.longitude ?? null,
+      mapLabel: o.address?.mapLabel ?? '',
+    },
+  }));
+  parsed.categories = (parsed.categories || []).map((c) => ({ ...c, parentId: c.parentId ?? null }));
+  const catIds = new Set(parsed.categories.map((c) => c.id));
+  parsed.categories = [...parsed.categories, ...seed.categories.filter((c) => !catIds.has(c.id))];
+  parsed.enquiries = parsed.enquiries || [];
+  let migratedFavorites: string[] = parsed.favoriteIds || [];
+  if (!parsed.favoriteIds) {
+    try {
+      const old = JSON.parse(localStorage.getItem('luma.favorites.v1') || '[]');
+      if (Array.isArray(old)) migratedFavorites = old.filter((x) => typeof x === 'string');
+    } catch { /* ignore */ }
+  }
+  parsed.favoriteIds = migratedFavorites;
+  // Move known seed products into their subcategories; leave custom products alone.
+  parsed.products = (parsed.products || []).map((p) =>
+    SUBCATEGORY_BY_PRODUCT[p.id] && parsed.categories.find((c) => c.id === SUBCATEGORY_BY_PRODUCT[p.id])
+      ? { ...p, categoryId: SUBCATEGORY_BY_PRODUCT[p.id] }
+      : p
+  );
+  parsed.settings = { ...seed.settings, ...parsed.settings };
+  parsed.version = 4;
+  return parsed;
+}
+
 export class LocalAdapter implements DataAdapter {
   async load(): Promise<AppData> {
     try {
       const raw = localStorage.getItem(DATA_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as AppData;
-        // Migrate legacy data in place; never discard the client's edits.
-        parsed.products = (parsed.products || []).map((p) => ({
-          ...p,
-          images: (p.images || []).map((im) => im.startsWith('./') ? im.slice(1) : im),
-        }));
-        parsed.orders = (parsed.orders || []).map((o) => ({
-          ...o,
-          address: {
-            ...o.address,
-            latitude: o.address?.latitude ?? null,
-            longitude: o.address?.longitude ?? null,
-            mapLabel: o.address?.mapLabel ?? '',
-          },
-        }));
-        // v2 categories had no parentId; treat them all as top-level.
-        parsed.categories = (parsed.categories || []).map((c) => ({ ...c, parentId: c.parentId ?? null }));
-        // Merge in any newly seeded subcategories without overwriting existing ones.
-        const seed = createSeedData();
-        const catIds = new Set(parsed.categories.map((c) => c.id));
-        parsed.categories = [...parsed.categories, ...seed.categories.filter((c) => !catIds.has(c.id))];
-        parsed.enquiries = parsed.enquiries || [];
-        // Carry over favorites from the old standalone localStorage key.
-        let migratedFavorites: string[] = parsed.favoriteIds || [];
-        if (!parsed.favoriteIds) {
-          try {
-            const old = JSON.parse(localStorage.getItem('luma.favorites.v1') || '[]');
-            if (Array.isArray(old)) migratedFavorites = old.filter((x) => typeof x === 'string');
-          } catch { /* ignore */ }
-        }
-        parsed.favoriteIds = migratedFavorites;
-        parsed.settings = { ...seed.settings, ...parsed.settings };
-        parsed.version = 3;
-        return parsed;
-      }
+      if (raw) return migrateData(JSON.parse(raw) as AppData);
     } catch {
       // corrupted data falls back to seed
     }
@@ -105,9 +120,14 @@ export class CloudAdapter implements DataAdapter {
     const remote = await fetchCloud();
     if (remote?.data && Object.keys(remote.data).length) {
       this.lastUpdatedAt = remote.updated_at;
-      // Clear any stale session whose user no longer exists in shared data.
-      localStorage.setItem(DATA_KEY, JSON.stringify(remote.data));
-      return remote.data;
+      // Migrate an old shared document in place, then publish it back so every
+      // device converges on the same upgraded data.
+      const migrated = migrateData(structuredClone(remote.data));
+      localStorage.setItem(DATA_KEY, JSON.stringify(migrated));
+      if (migrated.version !== remote.data.version || JSON.stringify(migrated) !== JSON.stringify(remote.data)) {
+        void this.save(migrated);
+      }
+      return migrated;
     }
     // Offline or empty cloud: use the local cache, then the seed.
     const cached = await new LocalAdapter().load();
@@ -316,6 +336,41 @@ export function useReady(): boolean {
 }
 
 // ---- selectors / helpers ----
+
+/** All top-level categories (parentId === null), sorted. */
+export const topCategories = (data: AppData) =>
+  data.categories.filter((c) => c.parentId === null).sort((a, b) => a.sortOrder - b.sortOrder);
+
+/** Direct children of a category, sorted and active-only. */
+export const childCategoriesOf = (data: AppData, id: string) =>
+  data.categories.filter((c) => c.parentId === id && c.active).sort((a, b) => a.sortOrder - b.sortOrder);
+
+/** A category plus every descendant id (recursive). */
+export function categorySubtreeIds(data: AppData, id: string): string[] {
+  const out = new Set<string>([id]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const c of data.categories) {
+      if (c.parentId && out.has(c.parentId) && !out.has(c.id)) { out.add(c.id); changed = true; }
+    }
+  }
+  return [...out];
+}
+
+/**
+ * Ids whose products should appear when browsing a category. Normally the
+ * category's own subtree. For a subcategory with no products assigned yet,
+ * fall back to its parent's subtree so the page is never empty.
+ */
+export function categoryProductScope(data: AppData, id: string): string[] {
+  const cat = data.categories.find((c) => c.id === id);
+  const subtree = categorySubtreeIds(data, id);
+  const hasProducts = data.products.some((p) => p.isActive && subtree.includes(p.categoryId));
+  if (!hasProducts && cat?.parentId) return categorySubtreeIds(data, cat.parentId);
+  return subtree;
+}
+
 export const effectivePrice = (v: { retailPrice: number; salePrice: number | null }) => v.salePrice ?? v.retailPrice;
 export const productMinPrice = (p: Product) => Math.min(...p.variants.map(effectivePrice));
 export const productStock = (p: Product) => p.variants.reduce((s, v) => s + v.stock, 0);
