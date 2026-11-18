@@ -100,30 +100,49 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const priced = useMemo<PricedLine[]>(() => {
     if (!data) return [];
-    return lines.flatMap((line) => {
-      const product = data.products.find((p) => p.id === line.productId);
-      const variant = product?.variants.find((v) => v.id === line.variantId);
-      if (!variant || !product) return [];
-      const result = resolveUnitPrice(data, variant, product.id, line.quantity, customer);
-      const qc = checkQuantity(variant, line.quantity);
-      return [{
-        ...line,
-        unitPrice: result.unitPrice,
-        lineTotal: result.unitPrice * line.quantity,
-        tierLabel: result.tierLabel,
-        source: result.source,
-        packSize: variant.packSize ?? 1,
-        moq: variant.moq ?? 1,
-        stock: variant.stock,
-        qtyValid: qc.valid,
-        qtyMessage: qc.messageAr,
-        adjustedQty: qc.adjusted,
-      }];
-    });
+    try {
+      return lines.flatMap((line) => {
+        const product = data.products.find((p) => p.id === line.productId);
+        const variant = product?.variants.find((v) => v.id === line.variantId);
+        if (!variant || !product) return [];
+        const result = resolveUnitPrice(data, variant, product.id, line.quantity, customer);
+        const qc = checkQuantity(variant, line.quantity);
+        return [{
+          ...line,
+          unitPrice: result.unitPrice,
+          lineTotal: result.unitPrice * line.quantity,
+          tierLabel: result.tierLabel,
+          source: result.source,
+          packSize: variant.packSize ?? 1,
+          moq: variant.moq ?? 1,
+          stock: variant.stock,
+          qtyValid: qc.valid,
+          qtyMessage: qc.messageAr,
+          adjustedQty: qc.adjusted,
+        }];
+      });
+    } catch (err) {
+      // A pricing failure must never blank the cart; fall back to base prices.
+      console.error('[cart] pricing failed', err);
+      return lines.flatMap((line) => {
+        const product = data.products.find((p) => p.id === line.productId);
+        const variant = product?.variants.find((v) => v.id === line.variantId);
+        if (!variant || !product) return [];
+        const unitPrice = variant.salePrice ?? variant.retailPrice;
+        return [{
+          ...line, unitPrice, lineTotal: unitPrice * line.quantity,
+          tierLabel: 'سعر البيع', source: 'base' as const,
+          packSize: variant.packSize ?? 1, moq: variant.moq ?? 1, stock: variant.stock,
+          qtyValid: true, qtyMessage: '', adjustedQty: line.quantity,
+        }];
+      });
+    }
   }, [lines, data, customer]);
 
   const subtotal = priced.reduce((sum, l) => sum + l.lineTotal, 0);
-  const count = lines.reduce((s, l) => s + l.quantity, 0);
+  // Count and validity derive from the same resolvable lines the cart page
+  // renders, so the header badge can never disagree with the cart contents.
+  const count = priced.reduce((s, l) => s + l.quantity, 0);
   const hasInvalid = priced.some((l) => !l.qtyValid);
 
   return <CartContext.Provider value={{ lines, priced, count, add, setQty, addMany, remove, clear, subtotal, hasInvalid }}>{children}</CartContext.Provider>;

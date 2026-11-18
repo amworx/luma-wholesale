@@ -25,7 +25,7 @@ export function Modal({ open, onClose, title, children, footer, wide }: Props) {
       <div className={`modal ${wide ? 'modal-lg' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-head">
           <h3 style={{ fontSize: 19 }}>{title}</h3>
-          <button className="btn-icon" onClick={onClose} aria-label="إغلاق"><X size={20} /></button>
+          <button className="modal-close" onClick={onClose} aria-label="إغلاق"><X size={18} /></button>
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}

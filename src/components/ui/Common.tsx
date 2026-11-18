@@ -46,8 +46,8 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   );
 }
 
-export function ConfirmButton({ onConfirm, children, className = 'btn btn-danger btn-sm', title = 'تأكيد الحذف' }: {
+export function ConfirmButton({ onConfirm, children, className = 'btn-icon-soft is-danger', title = 'تأكيد الحذف' }: {
   onConfirm: () => void; children: ReactNode; className?: string; title?: string;
 }) {
-  return <button className={className} title={title} onClick={() => { if (window.confirm('هل أنت متأكد؟')) onConfirm(); }}>{children}</button>;
+  return <button className={className} title={title} aria-label={title} onClick={() => { if (window.confirm('هل أنت متأكد؟')) onConfirm(); }}>{children}</button>;
 }

@@ -291,6 +291,10 @@ class Store {
       if (!u || !u.active) this.setSession(null);
     }
     this.ready = true;
+    // Notify data subscribers too: providers mounted above the ready gate
+    // (CartProvider, FavoritesProvider) subscribed while data was still null
+    // and would otherwise never re-render with the loaded data.
+    this.listeners.forEach((l) => l());
     this.readyListeners.forEach((l) => l());
   }
 

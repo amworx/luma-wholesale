@@ -4,6 +4,7 @@ import {
   User as UserIcon, Package, LogOut, ShoppingBag, Wallet, Truck, CheckCircle2, Clock,
   ChevronDown, MapPin, Phone, Mail, CalendarDays, Pencil, Save, X,
   Boxes, BadgeCheck, FileText, Home, AlertCircle, FileDown, Printer,
+  Sparkles, Zap, Heart, ArrowLeft, Building2,
 } from 'lucide-react';
 import { useData, useSession, store, formatMoney } from '@/data/store';
 import { exportReportPdf } from '@/data/exportPdf';
@@ -87,7 +88,15 @@ export function AccountPage() {
     <div className="profile-page container">
       {/* Cover + identity */}
       <div className="profile-hero">
-        <div className="profile-cover" />
+        <div className="profile-cover">
+          <div className="profile-cover-glow" />
+          <div className="profile-cover-badge">
+            <Sparkles size={13} /> حساب جملة
+          </div>
+          <div className="profile-cover-title">
+            <Building2 size={14} /> بوابة التجار — لمسة
+          </div>
+        </div>
         <div className="profile-identity">
           <div className="profile-avatar" style={{ background: me?.avatarColor || 'var(--plum-700)' }}>{session.name.charAt(0)}</div>
           <div className="profile-id-text">
@@ -95,6 +104,7 @@ export function AccountPage() {
             <div className="profile-id-meta">
               <span><Mail size={13} /> {me?.email}</span>
               <span><CalendarDays size={13} /> عضو منذ {new Date(me?.createdAt || Date.now()).toLocaleDateString('ar-SA')}</span>
+              {me?.companyName && <span><Building2 size={13} /> {me.companyName}</span>}
             </div>
           </div>
           <button className="btn btn-outline profile-logout" onClick={() => { store.logout(); navigate('/store'); }}><LogOut size={16} /> تسجيل الخروج</button>
@@ -110,6 +120,30 @@ export function AccountPage() {
           {me.accountStatus === 'rejected' && 'لم تتم الموافقة على حساب الجملة. تواصل مع فريق المبيعات.'}
         </div>
       )}
+
+      {/* Quick actions */}
+      <div className="profile-quick">
+        <Link to="/store/bulk-order" className="quick-tile quick-primary">
+          <span className="quick-icon"><Zap size={20} /></span>
+          <span><strong>طلب سريع بالجملة</strong><small>أدخل الأكواد والكميات دفعة واحدة</small></span>
+          <ArrowLeft size={17} className="quick-arrow" />
+        </Link>
+        <Link to="/store/cart" className="quick-tile">
+          <span className="quick-icon"><ShoppingBag size={20} /></span>
+          <span><strong>سلة المشتريات</strong><small>راجع الكميات وأكمل الطلب</small></span>
+          <ArrowLeft size={17} className="quick-arrow" />
+        </Link>
+        <Link to="/store/favorites" className="quick-tile">
+          <span className="quick-icon"><Heart size={20} /></span>
+          <span><strong>المفضلة</strong><small>المنتجات التي حفظتها</small></span>
+          <ArrowLeft size={17} className="quick-arrow" />
+        </Link>
+        <button className="quick-tile" onClick={() => setTab('orders')}>
+          <span className="quick-icon"><Package size={20} /></span>
+          <span><strong>طلباتي</strong><small>{stats.pending} قيد المعالجة</small></span>
+          <ArrowLeft size={17} className="quick-arrow" />
+        </button>
+      </div>
 
       {/* Tabs */}
       <div className="profile-tabs" role="tablist">
