@@ -3,9 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   User as UserIcon, Package, LogOut, ShoppingBag, Wallet, Truck, CheckCircle2, Clock,
   ChevronDown, MapPin, Phone, Mail, CalendarDays, Pencil, Save, X,
-  Boxes, BadgeCheck, FileText, Home, AlertCircle,
+  Boxes, BadgeCheck, FileText, Home, AlertCircle, FileDown, Printer,
 } from 'lucide-react';
 import { useData, useSession, store, formatMoney } from '@/data/store';
+import { exportReportPdf } from '@/data/exportPdf';
 import { EmptyState } from '@/components/ui/Common';
 import { useToast } from '@/components/ui/Toast';
 import type { Order, OrderStatus, User } from '@/types';
@@ -99,6 +100,16 @@ export function AccountPage() {
           <button className="btn btn-outline profile-logout" onClick={() => { store.logout(); navigate('/store'); }}><LogOut size={16} /> تسجيل الخروج</button>
         </div>
       </div>
+
+      {/* Wholesale account status */}
+      {me?.role === 'customer' && me.accountStatus !== 'active' && (
+        <div className="badge badge-warning" style={{ marginTop: 16, padding: '12px 16px', width: '100%', justifyContent: 'flex-start', gap: 8, fontSize: 13 }}>
+          <Clock size={16} />
+          {me.accountStatus === 'pending' && 'حسابك قيد المراجعة. سيتفعّل الطلب بالجملة بعد موافقة فريق المبيعات.'}
+          {me.accountStatus === 'suspended' && 'حسابك موقوف مؤقتاً. تواصل مع فريق المبيعات.'}
+          {me.accountStatus === 'rejected' && 'لم تتم الموافقة على حساب الجملة. تواصل مع فريق المبيعات.'}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="profile-tabs" role="tablist">
@@ -265,6 +276,34 @@ function OrderCard({ order, expanded, onToggle }: { order: Order; expanded: bool
                 <div className="order-note"><AlertCircle size={14} /> ملاحظة من المبيعات: {order.handlingNotes}</div>
               )}
             </div>
+          </div>
+
+          {/* Printable report + PDF export */}
+          <div className="row wrap" style={{ gap: 8, marginTop: 18, borderTop: '1px dashed var(--line)', paddingTop: 16 }}>
+            <button className="btn btn-primary btn-sm" onClick={() => exportReportPdf(`طلب-${order.orderNumber}`)}><FileDown size={15} /> تصدير PDF</button>
+            <button className="btn btn-outline btn-sm" onClick={() => window.print()}><Printer size={15} /> طباعة التقرير</button>
+          </div>
+          <div id="order-report" className="order-report" style={{ background: '#fff', border: '2px solid var(--line)', borderRadius: 14, padding: 20, textAlign: 'right', marginTop: 16 }}>
+            <div className="row-between" style={{ borderBottom: '2px solid var(--plum-700)', paddingBottom: 12, marginBottom: 14 }}>
+              <div><h3 style={{ fontSize: 18, color: 'var(--plum-700)' }}>{store.getSnapshot()?.settings.storeNameAr}</h3><p className="muted" style={{ fontSize: 11 }}>تقرير طلب شراء بالجملة</p></div>
+              <div style={{ textAlign: 'left' }}><strong style={{ fontSize: 16 }}>{order.orderNumber}</strong><p className="muted" style={{ fontSize: 11 }}>{new Date(order.createdAt).toLocaleDateString('ar-SY')}</p></div>
+            </div>
+            <div className="report-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, marginBottom: 14 }}>
+              <div><span className="muted">العميل: </span><strong>{order.customerName}</strong></div>
+              <div><span className="muted">الهاتف: </span><strong dir="ltr" style={{ display: 'inline-block' }}>{order.customerPhone}</strong></div>
+              <div><span className="muted">الجهة: </span><strong>{order.address.companyName || '—'}</strong></div>
+              <div><span className="muted">المدينة: </span><strong>{order.address.city}</strong></div>
+              <div style={{ gridColumn: '1 / -1' }}><span className="muted">العنوان: </span><strong>{order.address.city}، {order.address.area}، {order.address.street}{order.address.building ? `، ${order.address.building}` : ''}</strong></div>
+            </div>
+            <table className="tbl" style={{ marginBottom: 12 }}>
+              <thead><tr><th>المنتج</th><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>المجموع</th></tr></thead>
+              <tbody>{order.lines.map((l, i) => (
+                <tr key={i}><td>{l.productNameAr}</td><td className="muted">{l.variantNameAr}</td><td>{l.quantity}</td><td>{formatMoney(l.unitPrice)}</td><td style={{ fontWeight: 800 }}>{formatMoney(l.lineTotal)}</td></tr>
+              ))}</tbody>
+            </table>
+            <div className="row-between"><span>المجموع الفرعي</span><strong>{formatMoney(order.subtotal)}</strong></div>
+            <div className="row-between" style={{ marginTop: 6 }}><span>الشحن</span><strong>{order.shippingFee ? formatMoney(order.shippingFee) : '—'}</strong></div>
+            <div className="row-between" style={{ marginTop: 10, fontSize: 16, color: 'var(--plum-700)' }}><strong>الإجمالي</strong><strong>{formatMoney(order.quotedTotal ?? order.total)}</strong></div>
           </div>
         </div>
       )}

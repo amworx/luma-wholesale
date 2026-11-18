@@ -191,6 +191,7 @@ export interface StoreSettings {
   currency: string;              // USD
   currencySymbol: string;        // $
   currencyPosition: 'before' | 'after';
+  defaultWholesalePct: number;   // fallback discount when no price rule matches
   freeShippingOver: number;
   defaultShippingFee: number;
   contactPhone: string;

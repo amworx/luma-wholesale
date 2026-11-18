@@ -121,9 +121,20 @@ export class LocalAdapter implements DataAdapter {
  * localStorage as an offline cache. A realtime subscription pushes changes
  * from the laptop to the phone (and back) without a refresh.
  */
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'offline' | 'conflict' | 'error';
+
 export class CloudAdapter implements DataAdapter {
   private lastUpdatedAt: string | null = null;
   private onRemoteChange: ((data: AppData) => void) | null = null;
+  private onStatus: ((status: SaveStatus) => void) | null = null;
+  private saveQueue: Promise<void> = Promise.resolve();
+  // The latest unsent snapshot waits here; a sequence number prevents a newer
+  // write arriving mid-flush from being cleared by an older flush completing.
+  private pending: AppData | null = null;
+  private pendingSeq = 0;
+  private savedSeq = 0;
+
+  setStatusListener(fn: (status: SaveStatus) => void) { this.onStatus = fn; }
 
   /** Called by Store so incoming realtime rows update React state. */
   setRemoteListener(fn: (data: AppData) => void) {
@@ -161,17 +172,75 @@ export class CloudAdapter implements DataAdapter {
   }
 
   async save(data: AppData): Promise<void> {
-    // Always keep the offline cache current, even if the write fails.
+    // Keep the offline cache current immediately, even if the write fails.
     localStorage.setItem(DATA_KEY, JSON.stringify(data));
-    const result = await saveCloud(data, this.lastUpdatedAt);
-    if (result.ok && result.row) {
-      this.lastUpdatedAt = result.row.updated_at;
-    } else if (result.conflict && result.row) {
-      // A newer remote row exists (another device edited first): adopt it.
-      this.lastUpdatedAt = result.row.updated_at;
-      localStorage.setItem(DATA_KEY, JSON.stringify(result.row.data));
-      this.onRemoteChange?.(result.row.data);
+    this.pending = data;
+    const seq = ++this.pendingSeq;
+    // Serialize writes so two fast edits from this device cannot race and
+    // produce a stale updated_at conflict with our own previous write.
+    this.saveQueue = this.saveQueue.then(() => this.flush(seq));
+    return this.saveQueue;
+  }
+
+  /** Attempt to publish the latest snapshot, rebasing on remote conflicts. */
+  private async flush(seq: number): Promise<void> {
+    if (!this.pending || seq < this.savedSeq) return;
+    this.onStatus?.('saving');
+    let payload = this.pending;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const result = await saveCloud(payload, this.lastUpdatedAt);
+      if (result.ok && result.row) {
+        this.lastUpdatedAt = result.row.updated_at;
+        // Only clear pending if no newer write arrived while this was in flight.
+        if (seq === this.pendingSeq) { this.pending = null; this.savedSeq = seq; }
+        this.onStatus?.('saved');
+        return;
+      }
+      if (result.conflict && result.row) {
+        // Another device won the race. Never discard this device's edit:
+        // merge our pending snapshot onto the newer remote row, then retry.
+        this.lastUpdatedAt = result.row.updated_at;
+        payload = this.rebase(payload, result.row.data);
+        if (seq === this.pendingSeq) this.pending = payload;
+        localStorage.setItem(DATA_KEY, JSON.stringify(payload));
+        this.onRemoteChange?.(payload);
+        continue;
+      }
+      // Network/offline or unknown failure: keep the snapshot queued in
+      // localStorage and surface the failure instead of silently dropping it.
+      this.onStatus?.('offline');
+      return;
     }
+    // Exhausted retries: tell the user, keep the local copy intact.
+    this.onStatus?.('conflict');
+  }
+
+  /**
+   * Merge a locally-pending snapshot onto a newer remote row. Collection edits
+   * made on this device win for the entities they touched; everything else
+   * comes from the remote row. This is a best-effort demo merge, not a CRDT.
+   */
+  private rebase(local: AppData, remote: AppData): AppData {
+    const merged = structuredClone(remote);
+    const byId = <T extends { id: string }>(a: T[], b: T[]): T[] => {
+      const map = new Map(b.map((x) => [x.id, x]));
+      a.forEach((x) => map.set(x.id, x)); // local wins on id collision
+      return [...map.values()];
+    };
+    // Local snapshot is the device's current truth: use its collections
+    // wholesale, which also preserves local deletions. Remote-only entities
+    // added by another device since our snapshot are merged in by id.
+    merged.users = byId(local.users, remote.users);
+    merged.products = byId(local.products, remote.products);
+    merged.categories = byId(local.categories, remote.categories);
+    merged.orders = byId(local.orders, remote.orders);
+    merged.enquiries = byId(local.enquiries, remote.enquiries);
+    merged.priceRules = byId(local.priceRules, remote.priceRules);
+    merged.customerGroups = byId(local.customerGroups, remote.customerGroups);
+    merged.settings = { ...remote.settings, ...local.settings };
+    merged.favoriteIds = local.favoriteIds;
+    merged.version = Math.max(local.version, remote.version);
+    return merged;
   }
 
   async reset(): Promise<AppData> {
@@ -191,6 +260,8 @@ class Store {
   private ready = false;
   private readyListeners = new Set<Listener>();
   private adapter: DataAdapter;
+
+  getAdapter(): DataAdapter { return this.adapter; }
 
   constructor(adapter: DataAdapter) {
     this.adapter = adapter;
@@ -346,6 +417,21 @@ class Store {
 
 // One shared cloud document when configured; otherwise a per-device demo store.
 export const store = new Store(cloudEnabled ? new CloudAdapter() : new LocalAdapter());
+
+// Save-status subscription (cloud adapter only).
+let saveStatus: SaveStatus = 'idle';
+const saveStatusListeners = new Set<() => void>();
+if (store.getAdapter() instanceof CloudAdapter) {
+  (store.getAdapter() as CloudAdapter).setStatusListener((s) => {
+    saveStatus = s;
+    saveStatusListeners.forEach((l) => l());
+  });
+}
+const subscribeSaveStatus = (l: () => void) => { saveStatusListeners.add(l); return () => { saveStatusListeners.delete(l); }; };
+const getSaveStatus = () => saveStatus;
+export function useSaveStatus(): SaveStatus {
+  return useSyncExternalStore(subscribeSaveStatus, getSaveStatus, getSaveStatus);
+}
 
 export function useData(): AppData | null {
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);

@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/ui/Common';
 
 export function CartPage() {
   const data = useData();
-  const { priced, setQty, remove, subtotal } = useCart();
+  const { priced, setQty, remove, subtotal, hasInvalid } = useCart();
   if (!data) return null;
 
   const details = priced.map((line) => {
@@ -38,6 +38,7 @@ export function CartPage() {
                   {line.unitPrice < (v.salePrice ?? v.retailPrice) && <span className="muted" style={{ textDecoration: 'line-through', fontSize: 12 }}>{formatMoney(v.salePrice ?? v.retailPrice)}</span>}
                   {line.source !== 'base' && <span className="badge badge-info" style={{ fontSize: 9 }}><Tag size={10} /> {line.tierLabel}</span>}
                 </div>
+                {!line.qtyValid && <div className="text-danger" style={{ fontSize: 11, marginTop: 4 }}>{line.qtyMessage} · <button className="link-btn" onClick={() => setQty(line.productId, line.variantId, line.adjustedQty)}>اضبطها</button></div>}
               </div>
               <div className="row" style={{ gap: 0, border: '1px solid var(--line)', borderRadius: 9, overflow: 'hidden' }}>
                 <button className="btn-icon" onClick={() => setQty(line.productId, line.variantId, line.quantity - 1)}><Minus size={14} /></button>
@@ -57,8 +58,9 @@ export function CartPage() {
           <div style={{ borderTop: '1px dashed var(--line)', margin: '16px 0' }} />
           <div className="row-between" style={{ marginBottom: 18 }}><strong style={{ fontSize: 16 }}>الإجمالي</strong><strong style={{ fontSize: 22, color: 'var(--plum-700)' }}>{formatMoney(total)}</strong></div>
           <p className="muted" style={{ fontSize: 11, marginBottom: 14, lineHeight: 1.7 }}>الأسعار تقديرية حسب الكمية ونوع العميل، ويؤكدها فريق المبيعات نهائياً.</p>
+          {hasInvalid && <div className="badge badge-danger" style={{ marginBottom: 12, width: '100%', justifyContent: 'center' }}>اضبط الكميات غير الصالحة قبل الإرسال</div>}
           {shipping > 0 && <div className="badge badge-info" style={{ marginBottom: 16, width: '100%', justifyContent: 'center' }}><Truck size={14} /> أضف {formatMoney(data.settings.freeShippingOver - subtotal)} للشحن المجاني</div>}
-          <Link to="/store/checkout" className="btn btn-primary btn-lg btn-block">إرسال طلب الشراء <ArrowLeft size={18} /></Link>
+          <Link to={hasInvalid ? '#' : '/store/checkout'} className={`btn btn-primary btn-lg btn-block ${hasInvalid ? 'disabled' : ''}`} onClick={(e) => { if (hasInvalid) e.preventDefault(); }}>إرسال طلب الشراء <ArrowLeft size={18} /></Link>
           <Link to="/store/bulk-order" className="btn btn-outline btn-block" style={{ marginTop: 8 }}>طلب كميات كبيرة</Link>
           <Link to="/store/categories" className="btn btn-ghost btn-block" style={{ marginTop: 8 }}>متابعة التصفح</Link>
         </div>

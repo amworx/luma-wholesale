@@ -3,9 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import {
   Star, ShoppingBag, Truck, ShieldCheck, RotateCcw, Minus, Plus, Heart,
   ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, Share2, X, Maximize2,
-  MessageSquareText, Send,
+  MessageSquareText, Send, Tag,
 } from 'lucide-react';
-import { useData, useSession, store, effectivePrice, formatMoney } from '@/data/store';
+import { useData, useSession, store, formatMoney } from '@/data/store';
+import { checkQuantity, resolveUnitPrice } from '@/data/pricing';
 import { useCart } from '@/state/CartContext';
 import { useFavorites } from '@/state/FavoritesContext';
 import { useToast } from '@/components/ui/Toast';
@@ -30,6 +31,7 @@ export function ProductPage() {
 
   const [variantId, setVariantId] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
+  const [qtyError, setQtyError] = useState('');
   const [tab, setTab] = useState<'desc' | 'shipping' | 'reviews'>('desc');
 
   // Image viewer state
@@ -94,7 +96,9 @@ export function ProductPage() {
   }
 
   const activeVariant = product.variants.find((v) => v.id === variantId) || product.variants[0];
-  const price = effectivePrice(activeVariant);
+  const customer = session ? data.users.find((u) => u.id === session.userId) || null : null;
+  const priceSource = resolveUnitPrice(data, activeVariant, product.id, qty, customer);
+  const price = priceSource.unitPrice;
   const related = data.products.filter((p) => p.categoryId === product.categoryId && p.id !== product.id).slice(0, 5);
   const currentImage = images[Math.min(activeImage, Math.max(0, images.length - 1))] ?? '';
   const isFavorite = favorites.has(product.id);
@@ -160,6 +164,9 @@ export function ProductPage() {
 
   const addToCart = () => {
     if (activeVariant.stock === 0) return;
+    const check = checkQuantity(activeVariant, qty);
+    if (!check.valid) { setQtyError(check.messageAr); toast.show(check.messageAr, 'error'); return; }
+    setQtyError('');
     add(product.id, activeVariant.id, qty);
     toast.show(`تمت إضافة ${qty} إلى السلة`, 'success');
   };
@@ -227,7 +234,7 @@ export function ProductPage() {
             <div className="row-between" style={{ marginBottom: 10 }}><strong style={{ fontSize: 14 }}>الخيار:</strong><span className="muted" style={{ fontSize: 12 }}>{activeVariant.nameAr}</span></div>
             <div className="row wrap" style={{ gap: 10 }}>
               {product.variants.map((v) => (
-                <button key={v.id} onClick={() => { setVariantId(v.id); setQty(1); }}
+                <button key={v.id} onClick={() => { setVariantId(v.id); setQty(Math.max(1, v.moq || 1)); setQtyError(''); }}
                   className={`variant-chip ${activeVariant.id === v.id ? 'active' : ''} ${v.stock === 0 ? 'disabled' : ''}`}>
                   {v.colorHex && <span style={{ width: 16, height: 16, borderRadius: '50%', background: v.colorHex, border: '1px solid #ddd' }} />}
                   {v.nameAr}
@@ -247,7 +254,10 @@ export function ProductPage() {
               <span style={{ width: 36, textAlign: 'center', fontWeight: 800 }}>{qty}</span>
               <button className="btn-icon" onClick={() => setQty(Math.min(activeVariant.stock, qty + 1))} aria-label="زيادة الكمية"><Plus size={16} /></button>
             </div>
+            {(activeVariant.moq > 1 || activeVariant.packSize > 1) && <span className="muted" style={{ fontSize: 11 }}>الحد الأدنى {activeVariant.moq} · العبوة {activeVariant.packSize} وحدة</span>}
           </div>
+          {qtyError && <div className="text-danger" style={{ fontSize: 12, marginTop: -12, marginBottom: 14 }}>{qtyError}</div>}
+          {priceSource.source !== 'base' && <div className="row" style={{ gap: 5, fontSize: 11, color: 'var(--plum-600)', marginBottom: 12 }}><Tag size={12} /> {priceSource.tierLabel}</div>}
 
           <div className="row" style={{ gap: 10, marginBottom: 24 }}>
             <button className="btn btn-primary btn-lg grow" onClick={addToCart} disabled={activeVariant.stock === 0}>

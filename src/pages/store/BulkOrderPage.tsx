@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ShoppingCart, Package, RotateCcw, Tag, ArrowLeft, CheckCircle2, Layers } from 'lucide-react';
 import { useData, formatMoney } from '@/data/store';
-import { resolveUnitPrice } from '@/data/pricing';
+import { resolveUnitPrice, checkQuantity, isWholesaleEligible } from '@/data/pricing';
 import { useCart } from '@/state/CartContext';
 import { useSession } from '@/data/store';
 import { useToast } from '@/components/ui/Toast';
@@ -40,6 +40,25 @@ export function BulkOrderPage() {
 
   if (!data) return null;
 
+  // Pending/rejected/suspended business accounts cannot use wholesale ordering.
+  if (session?.role === 'customer' && !isWholesaleEligible(customer)) {
+    return (
+      <div className="container" style={{ padding: '60px 20px', maxWidth: 720 }}>
+        <div className="card card-pad center" style={{ padding: 44 }}>
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--warning-bg)', color: 'var(--warning)', display: 'grid', placeItems: 'center', margin: '0 auto 18px' }}><Layers size={36} /></div>
+          <h2 style={{ fontSize: 22, marginBottom: 10 }}>الطلب بالجملة غير متاح حالياً</h2>
+          <p className="muted" style={{ lineHeight: 1.9, marginBottom: 20 }}>
+            {customer?.accountStatus === 'pending' && 'حسابك قيد المراجعة. سيتفعّل الطلب بالجملة بعد موافقة فريق المبيعات.'}
+            {customer?.accountStatus === 'suspended' && 'حسابك موقوف مؤقتاً. تواصل مع فريق المبيعات.'}
+            {customer?.accountStatus === 'rejected' && 'لم تتم الموافقة على حساب الجملة. تواصل مع فريق المبيعات.'}
+            {!customer && 'سجّل الدخول بحساب عميل نشط لاستخدام الطلب بالجملة.'}
+          </p>
+          <Link to="/store/account" className="btn btn-primary">عرض حالة الحساب</Link>
+        </div>
+      </div>
+    );
+  }
+
   const setQty = (variantId: string, qty: number) => setRows((r) => ({ ...r, [variantId]: Math.max(0, qty) }));
 
   const selected: Row[] = Object.entries(rows)
@@ -56,8 +75,15 @@ export function BulkOrderPage() {
     return { units: acc.units + row.qty, amount: acc.amount + price * row.qty };
   }, { units: 0, amount: 0 });
 
+  const invalidCount = selected.filter((r) => {
+    const p = data.products.find((x) => x.id === r.productId)!;
+    const v = p.variants.find((x) => x.id === r.variantId)!;
+    return !checkQuantity(v, r.qty).valid;
+  }).length;
+
   const addToCart = () => {
     if (!selected.length) { toast.show('أدخل كمية لمنتج واحد على الأقل', 'error'); return; }
+    if (invalidCount) { toast.show(`اضبط ${invalidCount} كمية غير صالحة (حد أدنى / مضاعفات العبوة)`, 'error'); return; }
     addMany(selected.map((r) => ({ productId: r.productId, variantId: r.variantId, quantity: r.qty })));
     toast.show(`تمت إضافة ${selected.length} صنف للسلة`, 'success');
     setRows({});
@@ -97,7 +123,7 @@ export function BulkOrderPage() {
                 {products.map((p) => p.variants.map((v) => {
                   const qty = rows[v.id] || 0;
                   const pricing = resolveUnitPrice(data, v, p.id, Math.max(qty, v.moq), customer);
-                  const belowMoq = qty > 0 && qty < v.moq;
+                  const qc = qty > 0 ? checkQuantity(v, qty) : null;
                   return (
                     <tr key={v.id}>
                       <td>
@@ -115,7 +141,7 @@ export function BulkOrderPage() {
                       </td>
                       <td>
                         <input className="input bulk-qty" type="number" min={0} value={qty || ''} placeholder="0" onChange={(e) => setQty(v.id, Number(e.target.value))} />
-                        {belowMoq && <div className="text-danger" style={{ fontSize: 9, marginTop: 3 }}>أقل من الحد الأدنى</div>}
+                        {qc && !qc.valid && <div className="text-danger" style={{ fontSize: 9, marginTop: 3 }} title={qc.messageAr}>{qc.messageAr}</div>}
                       </td>
                     </tr>
                   );
@@ -141,6 +167,7 @@ export function BulkOrderPage() {
               <div style={{ borderTop: '1px dashed var(--line)', margin: '14px 0' }} />
               <div className="row-between" style={{ marginBottom: 6 }}><span className="muted">إجمالي الوحدات</span><strong>{totals.units}</strong></div>
               <div className="row-between" style={{ marginBottom: 16 }}><span className="muted">القيمة التقديرية</span><strong style={{ fontSize: 20, color: 'var(--plum-700)' }}>{formatMoney(totals.amount)}</strong></div>
+              {invalidCount > 0 && <div className="badge badge-danger" style={{ marginBottom: 10, width: '100%', justifyContent: 'center' }}>{invalidCount} كمية تحتاج ضبط</div>}
               <button className="btn btn-primary btn-lg btn-block" onClick={addToCart}><CheckCircle2 size={17} /> أضف للسلة</button>
               <Link to="/store/cart" className="btn btn-outline btn-block" style={{ marginTop: 8 }}>عرض السلة <ArrowLeft size={15} /></Link>
             </>

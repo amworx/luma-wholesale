@@ -7,6 +7,7 @@ const now = '2026-11-01T09:00:00.000Z';
 export const seedCategories: Category[] = [
   { id: 'c-lips', nameAr: 'أحمر الشفاه', nameEn: 'Lipstick', descriptionAr: 'ألوان ثابتة وترطيب يدوم طويلاً', icon: 'Palette', color: '#b3123f', active: true, sortOrder: 1, parentId: null },
   { id: 'c-lips-matte', nameAr: 'أحمر مطفي', nameEn: 'Matte Lipstick', descriptionAr: 'تركيبة مطفيّة تدوم طويلاً', icon: 'Palette', color: '#b3123f', active: true, sortOrder: 1, parentId: 'c-lips' },
+  { id: 'c-lips-matte-long', nameAr: 'يدوم طويلاً', nameEn: 'Long Lasting', descriptionAr: 'أحمر مطفي ثبات عالي', icon: 'Star', color: '#b3123f', active: true, sortOrder: 1, parentId: 'c-lips-matte' },
   { id: 'c-lips-gloss', nameAr: 'لمعة الشفاه', nameEn: 'Lip Gloss', descriptionAr: 'لمعة وترطيب فوري', icon: 'Sparkles', color: '#b3123f', active: true, sortOrder: 2, parentId: 'c-lips' },
   { id: 'c-skin', nameAr: 'العناية بالبشرة', nameEn: 'Skincare', descriptionAr: 'سيرومات وكريمات للبشرة', icon: 'Sparkles', color: '#4d8ba3', active: true, sortOrder: 2, parentId: null },
   { id: 'c-skin-serum', nameAr: 'السيرومات', nameEn: 'Serums', descriptionAr: 'سيرومات مركّزة لكل أنواع البشرة', icon: 'Sparkles', color: '#4d8ba3', active: true, sortOrder: 1, parentId: 'c-skin' },
@@ -40,7 +41,7 @@ export const seedProducts: Product[] = [
     shortDescriptionAr: 'لون مخملي غني يدوم 12 ساعة',
     descriptionAr: 'تركيبة مخملية ناعمة تمنح الشفاه لوناً غنياً يدوم طوال اليوم دون جفاف. غني بزبدة الشيا وفيتامين E للترطيب.',
     categoryId: 'c-lips-matte', brand: 'لُما بيوتي', tags: ['مخملي', 'يدوم طويلاً', 'الأكثر مبيعاً'],
-    images: [img('lipstick-velvet')],
+    images: [img('lipstick-velvet'), img('lipstick-coral'), img('lipstick-nude')],
     variants: [
       variant('v-lv-01', 'أحمر كرزي', 'LM-LV-01', 4.5, 12, 8.9, 24, '#b3123f'),
       variant('v-lv-02', 'وردي داكن', 'LM-LV-02', 4.5, 12, 8.9, 18, '#a85480'),
@@ -55,7 +56,7 @@ export const seedProducts: Product[] = [
     shortDescriptionAr: 'لون كورال مشرق لإطلالة نضرة',
     descriptionAr: 'لون كورال دافئ يمنح الشفاه إشراقة طبيعية. تركيبة خفيفة غير لامعة تناسب الاستخدام اليومي.',
     categoryId: 'c-lips-matte', brand: 'لُما بيوتي', tags: ['كورال', 'يومي'],
-    images: [img('lipstick-coral')],
+    images: [img('lipstick-coral'), img('lipstick-velvet'), img('lip-gloss')],
     variants: [
       variant('v-lc-01', 'كورال مشرق', 'LM-LC-01', 4, 11, 7.9, 32, '#e0563f'),
       variant('v-lc-02', 'مرجاني', 'LM-LC-02', 4, 11, null, 3, '#c9503b'),
@@ -83,7 +84,7 @@ export const seedProducts: Product[] = [
     shortDescriptionAr: 'سيروم فيتامين C لإشراقة فورية',
     descriptionAr: 'سيروم غني بفيتامين C وحمض الهيالورونيك يوحّد لون البشرة ويمنحها إشراقة صحية.',
     categoryId: 'c-skin-serum', brand: 'لُما سكين', tags: ['فيتامين C', 'إشراقة'],
-    images: [img('serum-glow')],
+    images: [img('serum-glow'), img('serum-hyaluronic'), img('cream-jar')],
     variants: [variant('v-sg-01', '30 مل', 'LM-SG-30', 8.5, 24, 18.9, 20, undefined, '30 مل')],
     shipping: 'standard', shippingFee: 800, freeShippingOver: 10000,
     isFeatured: true, isNew: false, isActive: true, rating: 4.9, reviewCount: 203,
@@ -120,7 +121,7 @@ export const seedProducts: Product[] = [
     shortDescriptionAr: 'عطر فاخر بنفحات الورد',
     descriptionAr: 'عطر أو دو بارفان يجمع بين الورد الدمشقي والمسك الأبيض، يدوم أكثر من 8 ساعات.',
     categoryId: 'c-fragrance-women', brand: 'لُما عطور', tags: ['ورد', 'فاخر'],
-    images: [img('perfume-rose')],
+    images: [img('perfume-rose'), img('perfume-amber')],
     variants: [
       variant('v-pr-01', '50 مل', 'LM-PR-50', 18, 49, 39.9, 14, undefined, '50 مل'),
       variant('v-pr-02', '100 مل', 'LM-PR-100', 28, 75, 62, 6, undefined, '100 مل'),
@@ -315,6 +316,7 @@ export function createSeedData(): AppData {
     settings: {
       storeNameAr: 'لُما', storeNameEn: 'Luma', taglineAr: 'شريكك الموثوق في مستحضرات التجميل بالجملة',
       currency: 'USD', currencySymbol: '$', currencyPosition: 'before',
+      defaultWholesalePct: 10,
       freeShippingOver: 10000, defaultShippingFee: 800,
       contactPhone: '0933000000', contactEmail: 'hello@luma.sy',
       addressAr: 'دمشق، الجمهورية العربية السورية', instagram: '@luma.beauty', whatsapp: '0933000000',

@@ -13,7 +13,14 @@ settings and favorites are all shared. The shopping cart stays per-device.
   otherwise `LocalAdapter` (per-device) as a fallback.
 - The shared document is one row in `public.luma_store` (id `main`), stored as
   `jsonb`. Writes use optimistic concurrency on `updated_at` so a stale device
-  cannot silently overwrite a newer change; on conflict it adopts the newer row.
+  cannot silently overwrite a newer change.
+- Writes are serialized through a **save queue** in `CloudAdapter`. On a conflict
+  (another device wrote first), the pending snapshot is rebased onto the newer
+  remote row and retried up to three times — a local edit is never silently
+  discarded. If saving fails (offline/error), the snapshot stays in the local
+  cache and a visible banner appears via `useSaveStatus()`; the app never
+  quietly replaces newer remote data with a stale local copy. This is best-effort
+  demo merging, not a conflict-free data store.
 - A Supabase Realtime subscription pushes changes to every open tab/device
   immediately — no refresh needed.
 - `localStorage` (`luma.data.v2`) is kept as an **offline cache**. If the network

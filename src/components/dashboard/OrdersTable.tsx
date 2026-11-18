@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Search, Eye, Trash2, Printer, UserCheck } from 'lucide-react';
+import { Search, Eye, Trash2, Printer, UserCheck, FileDown } from 'lucide-react';
 import { useData, store, formatMoney } from '@/data/store';
 import { useToast } from '@/components/ui/Toast';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmButton, EmptyState } from '@/components/ui/Common';
 import type { Order, OrderStatus, PaymentMethod } from '@/types';
+import { exportReportPdf } from '@/data/exportPdf';
 
 const statuses: { key: OrderStatus; label: string; cls: string }[] = [
   { key: 'new', label: 'جديد', cls: 'badge-info' }, { key: 'processing', label: 'قيد التجهيز', cls: 'badge-warning' },
@@ -61,7 +62,7 @@ export function OrdersTable({ compact }: { compact?: boolean }) {
       </div>
 
       <Modal open={!!viewing} onClose={() => setViewing(null)} title={`تقرير الطلب ${viewing?.orderNumber || ''}`} wide
-        footer={<><button className="btn btn-primary" onClick={() => window.print()}><Printer size={16} /> طباعة التقرير</button><button className="btn btn-outline" onClick={() => setViewing(null)}>إغلاق</button></>}>
+        footer={<><button className="btn btn-primary" onClick={() => viewing && exportReportPdf(`طلب-${viewing.orderNumber}`)}><FileDown size={16} /> تصدير PDF</button><button className="btn btn-outline" onClick={() => window.print()}><Printer size={16} /> طباعة التقرير</button><button className="btn btn-outline" onClick={() => setViewing(null)}>إغلاق</button></>}>
         {viewing && <div style={{ display: 'grid', gap: 20 }}>
           {/* Printable order report */}
           <div id="order-report" className="order-report" style={{ background: '#fff', border: '2px solid var(--line)', borderRadius: 14, padding: 20, textAlign: 'right' }}>
@@ -85,9 +86,14 @@ export function OrdersTable({ compact }: { compact?: boolean }) {
                 <tr key={i}><td>{l.productNameAr}</td><td className="muted">{l.variantNameAr}</td><td>{l.quantity}</td><td>{formatMoney(l.unitPrice)}</td><td style={{ fontWeight: 800 }}>{formatMoney(l.lineTotal)}</td></tr>
               ))}</tbody>
             </table>
-            <div className="row-between"><span>المجموع الفرعي</span><strong>{formatMoney(viewing.subtotal)}</strong></div>
+            <div className="row-between"><span>المجموع الفرعي (سعر الطلب)</span><strong>{formatMoney(viewing.subtotal)}</strong></div>
             <div className="row-between" style={{ marginTop: 6 }}><span>الشحن التقديري</span><strong>{viewing.shippingFee ? formatMoney(viewing.shippingFee) : '—'}</strong></div>
-            <div className="row-between" style={{ marginTop: 10, fontSize: 17, color: 'var(--plum-700)' }}><strong>الإجمالي التقديري</strong><strong>{formatMoney(viewing.total)}</strong></div>
+            <div className="row-between" style={{ marginTop: 6 }}><span>الإجمالي التقديري</span><strong>{formatMoney(viewing.total)}</strong></div>
+            <div className="row-between" style={{ marginTop: 12, paddingTop: 12, borderTop: '2px solid var(--plum-700)', fontSize: 18, color: 'var(--plum-700)' }}>
+              <strong>السعر النهائي المتفق عليه</strong>
+              <strong>{viewing.quotedTotal !== null ? formatMoney(viewing.quotedTotal) : 'لم يحدد بعد'}</strong>
+            </div>
+            {viewing.quotedTotal !== null && viewing.quotedTotal !== viewing.total && <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>الفرق عن الإجمالي التقديري: {formatMoney(viewing.quotedTotal - viewing.total)}</p>}
             {viewing.address.notes && <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>ملاحظات العميل: {viewing.address.notes}</p>}
           </div>
 

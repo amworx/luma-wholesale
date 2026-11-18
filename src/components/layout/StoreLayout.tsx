@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, User, Home, Grid2X2, Menu, X, Heart, MapPin, Phone, Instagram, Sparkles } from 'lucide-react';
-import { useData, useSession } from '@/data/store';
+import { useData, useSession, useSaveStatus } from '@/data/store';
 import { useCart } from '@/state/CartContext';
 import { MegaMenu } from '@/components/store/MegaMenu';
 
 export function StoreLayout() {
   const data = useData();
   const session = useSession();
+  const saveStatus = useSaveStatus();
   const { count } = useCart();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -22,6 +23,15 @@ export function StoreLayout() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', paddingBottom: 72 }}>
+      {/* Cloud save status: failures must never be silent */}
+      {(saveStatus === 'offline' || saveStatus === 'conflict' || saveStatus === 'error') && (
+        <div style={{ background: 'var(--danger)', color: '#fff', textAlign: 'center', padding: '7px 16px', fontSize: 12, fontWeight: 700 }}>
+          {saveStatus === 'offline' && 'لا يوجد اتصال — التغييرات محفوظة على الجهاز وستُرسل عند عودة الاتصال'}
+          {saveStatus === 'conflict' && 'تعذّر مزامنة التغييرات بعد عدة محاولات — أعد تحميل الصفحة'}
+          {saveStatus === 'error' && 'تعذّر حفظ التغييرات — أعد المحاولة'}
+        </div>
+      )}
+
       {/* Announcement bar */}
       {data?.settings.announcementsAr[0] && (
         <div style={{ background: 'linear-gradient(90deg, var(--plum-800), var(--plum-600))', color: '#fff', textAlign: 'center', padding: '7px 16px', fontSize: 12, fontWeight: 600 }}>

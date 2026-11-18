@@ -323,12 +323,27 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 }
 
 /* Printable wholesale order report */
+.order-report { max-width: 100%; overflow: hidden; }
+.order-report table.tbl { table-layout: fixed; width: 100%; }
+.order-report table.tbl th,
+.order-report table.tbl td { white-space: normal; overflow-wrap: anywhere; word-break: break-word; padding: 9px 8px; font-size: 12px; }
+.order-report table.tbl th:first-child,
+.order-report table.tbl td:first-child { width: 30%; }
+.order-report table.tbl th:nth-child(2),
+.order-report table.tbl td:nth-child(2) { width: 25%; }
+.order-report table.tbl th:nth-child(3),
+.order-report table.tbl td:nth-child(3) { width: 10%; text-align: center; }
+.order-report table.tbl th:nth-child(4),
+.order-report table.tbl td:nth-child(4) { width: 16%; white-space: nowrap; }
+.order-report table.tbl th:nth-child(5),
+.order-report table.tbl td:nth-child(5) { width: 19%; white-space: nowrap; text-align: left; }
 @media print {
   body * { visibility: hidden !important; }
   #order-report, #order-report * { visibility: visible !important; }
-  #order-report { position: absolute; inset: 0; width: 100%; border: none !important; padding: 0 !important; }
+  #order-report { position: absolute; inset: 0; width: 100%; border: none !important; padding: 0 !important; overflow: visible !important; }
+  #order-report table.tbl { table-layout: fixed; width: 100%; }
   .report-grid { grid-template-columns: 1fr 1fr !important; }
-  @page { margin: 16mm; }
+  @page { margin: 14mm; }
 }
 
 /* ---- Checkout rework ---- */
@@ -707,4 +722,13 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 @media (max-width: 960px) {
   .bulk-layout { grid-template-columns: 1fr; }
   .bulk-summary { position: static; }
+}
+
+/* ---- Category tree (unlimited depth) ---- */
+.cat-node-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; transition: background .15s; }
+.cat-node-row:hover { background: var(--rose-50); }
+.cat-node { position: relative; }
+@media (max-width: 720px) {
+  .cat-node-row { flex-wrap: wrap; }
+  .cat-node-row .row { width: 100%; justify-content: flex-end; }
 }

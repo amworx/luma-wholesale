@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, CheckCircle2, FileText, Printer, PackageCheck } from 'lucide-react';
+import { MapPin, CheckCircle2, FileText, Printer, PackageCheck, FileDown } from 'lucide-react';
 import { useData, useSession, store, formatMoney } from '@/data/store';
 import { useCart } from '@/state/CartContext';
 import { useToast } from '@/components/ui/Toast';
 import { LocationPicker, type PickedLocation } from '@/components/store/LocationPicker';
 import type { Order, ShippingAddress } from '@/types';
+import { exportReportPdf } from '@/data/exportPdf';
 
 const emptyAddress: ShippingAddress = {
   fullName: '', phone: '', city: '', area: '', street: '', notes: '',
@@ -16,7 +17,7 @@ const emptyAddress: ShippingAddress = {
 export function CheckoutPage() {
   const data = useData();
   const session = useSession();
-  const { priced, subtotal, clear } = useCart();
+  const { priced, subtotal, clear, hasInvalid } = useCart();
   const toast = useToast();
   const [address, setAddress] = useState<ShippingAddress>({ ...emptyAddress, fullName: session?.name || '' });
   const [placed, setPlaced] = useState<Order | null>(null);
@@ -48,6 +49,9 @@ export function CheckoutPage() {
 
   const placeOrder = (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasInvalid) {
+      toast.show('يرجى ضبط الكميات غير الصالحة في السلة أولاً', 'error'); return;
+    }
     if (!address.fullName || !address.phone || !address.city || !address.street) {
       toast.show('يرجى تعبئة الاسم ورقم الهاتف والمدينة والشارع', 'error'); return;
     }
@@ -135,7 +139,8 @@ export function CheckoutPage() {
           </div>
 
           <div className="row wrap" style={{ gap: 10, justifyContent: 'center' }}>
-            <button className="btn btn-primary" onClick={() => window.print()}><Printer size={16} /> طباعة التقرير</button>
+            <button className="btn btn-primary" onClick={() => exportReportPdf(`طلب-${placed.orderNumber}`)}><FileDown size={16} /> تصدير PDF</button>
+            <button className="btn btn-outline" onClick={() => window.print()}><Printer size={16} /> طباعة التقرير</button>
             <Link to="/store" className="btn btn-outline">العودة للمتجر</Link>
             <Link to="/store/account" className="btn btn-ghost">طلباتي</Link>
           </div>

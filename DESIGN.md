@@ -1,6 +1,6 @@
 ---
 name: لُما (Luma) Cosmetics Store
-description: Arabic-first, RTL cosmetics storefront and dashboards — elegant, warm, premium-but-accessible.
+description: Arabic-first, RTL wholesale cosmetics storefront and dashboards — elegant, warm, premium-but-accessible, neutral B2B tone.
 colors:
   primary: "#7c1d4f"
   primary-dark: "#4a0f2b"
@@ -55,7 +55,7 @@ components:
 
 ## Overview
 
-Luma's visual identity is premium but approachable: deep plum as the anchor, warm gold for accents and calls to action, and soft rose tints for surfaces. It reads as a modern beauty brand rather than a generic marketplace. The direction is warm, clean, and feminine without tipping into cliché — generous whitespace, soft shadows, confident typography.
+Luma's visual identity is premium but approachable: deep plum as the anchor, warm gold for accents and calls to action, and soft rose tints for surfaces. It reads as a modern beauty brand rather than a generic marketplace. The direction is warm, clean and professional — generous whitespace, soft shadows, confident typography. Copy is deliberately **neutral and wholesale/B2B**: it addresses traders and shops, never a female end-consumer.
 
 Everything is built RTL-first in Arabic. Cairo is the primary face (geometric, highly legible at small sizes); Tajawal is the fallback. Layouts use logical properties where it matters and collapse gracefully to a single column on phones.
 
@@ -98,12 +98,19 @@ Rounded corners throughout: 8px inputs, 14px buttons and cards, 20px large cards
 - **Badges**: pill-shaped, semantic color per status, used for discounts, stock, order state, roles.
 - **Inputs**: 1.5px border, plum focus ring, right-aligned labels in RTL.
 - **Modals**: centered, blurred backdrop, sticky header, distinct footer action bar.
+- **Category tree**: indented recursive rows with branch guides, collapse chevrons, depth badges and per-level reorder controls; unlimited nesting.
+- **Product gallery**: thumbnail strip under the main image, active thumbnail highlight, fullscreen viewer with zoom/rotate/next-previous/share.
+- **Wholesale pricing**: applied price source shown as a small badge ("سعر تفاوضي خاص" / group / default), base price struck through; MOQ/pack hints and inline validation messages in product, cart, bulk order and checkout.
+- **Order reports**: white A4-style sheet with header, customer/address grid, fixed-layout items table (wrapping columns, no overflow) and total; PDF export and print buttons on customer, checkout and admin/sales report surfaces.
 
 ## Do's and Don'ts
 
 - Do keep all user-facing copy in Arabic; English appears only as decorative brand subtext.
+- Do keep copy neutral/wholesale (trader-to-shop), never directed at a female consumer.
 - Do use logical spacing and RTL-aware flex direction so layouts mirror correctly.
-- Do keep product images local and square for a uniform grid.
+- Do keep product images local and square for a uniform grid; products may have multiple images for the gallery.
+- Do show prices in USD and label the applied wholesale pricing source.
 - Don't introduce a second accent color; gold and plum are enough.
 - Don't use pure black for text or shadows — the plum-tinted ink is softer and on-brand.
 - Don't let dashboards drift from the storefront's visual language; they share tokens deliberately.
+- Don't imply production guarantees (stock reservation, credit enforcement, secure auth) in the UI copy — this is a demo.
