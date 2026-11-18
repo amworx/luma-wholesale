@@ -6,6 +6,8 @@ import { resolveUnitPrice, checkQuantity } from '@/data/pricing';
 const CART_KEY = 'luma.cart.v1';
 
 export interface PricedLine extends CartLine {
+  productNameAr: string;
+  variantNameAr: string;
   unitPrice: number;
   lineTotal: number;
   tierLabel: string;
@@ -109,6 +111,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const qc = checkQuantity(variant, line.quantity);
         return [{
           ...line,
+          productNameAr: product.nameAr,
+          variantNameAr: variant.nameAr,
           unitPrice: result.unitPrice,
           lineTotal: result.unitPrice * line.quantity,
           tierLabel: result.tierLabel,
@@ -130,7 +134,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (!variant || !product) return [];
         const unitPrice = variant.salePrice ?? variant.retailPrice;
         return [{
-          ...line, unitPrice, lineTotal: unitPrice * line.quantity,
+          ...line, productNameAr: product.nameAr, variantNameAr: variant.nameAr,
+          unitPrice, lineTotal: unitPrice * line.quantity,
           tierLabel: 'سعر البيع', source: 'base' as const,
           packSize: variant.packSize ?? 1, moq: variant.moq ?? 1, stock: variant.stock,
           qtyValid: true, qtyMessage: '', adjustedQty: line.quantity,

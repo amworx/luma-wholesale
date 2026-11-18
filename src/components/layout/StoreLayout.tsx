@@ -1,9 +1,10 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Search, ShoppingBag, User, Home, Grid2X2, Menu, X, Heart, MapPin, Phone, Instagram, Sparkles } from 'lucide-react';
+import { Search, ShoppingBag, User, Menu, X, Heart, MapPin, Phone, Instagram, Sparkles } from 'lucide-react';
 import { useData, useSession, useSaveStatus } from '@/data/store';
 import { useCart } from '@/state/CartContext';
 import { MegaMenu } from '@/components/store/MegaMenu';
+import { BottomDock } from '@/components/store/BottomDock';
 
 export function StoreLayout() {
   const data = useData();
@@ -22,7 +23,7 @@ export function StoreLayout() {
   const dashLink = session?.role === 'admin' ? '/admin' : session?.role === 'sales' ? '/sales' : null;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', paddingBottom: 72 }}>
+    <div className="store-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', paddingBottom: 72 }}>
       {/* Cloud save status: failures must never be silent */}
       {(saveStatus === 'offline' || saveStatus === 'conflict' || saveStatus === 'error') && (
         <div style={{ background: 'var(--danger)', color: '#fff', textAlign: 'center', padding: '7px 16px', fontSize: 12, fontWeight: 700 }}>
@@ -57,7 +58,7 @@ export function StoreLayout() {
             <button type="submit" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', border: 0, background: 'none', color: 'var(--ink-500)' }}><Search size={19} /></button>
           </form>
 
-          <div className="row" style={{ gap: 4, flexShrink: 0 }}>
+          <div className="row header-actions" style={{ gap: 4, flexShrink: 0 }}>
             <NavLink to="/store/bulk-order" className="btn btn-primary btn-sm bulk-nav-btn" title="طلب سريع بالجملة">طلب سريع</NavLink>
             <NavLink to="/store/favorites" className="btn-icon" title="المفضلة"><Heart size={21} /></NavLink>
             <Link to={session ? (dashLink || '/store/account') : '/login'} className="btn-icon" title={session ? session.name : 'حسابي'}><User size={21} /></Link>
@@ -128,13 +129,8 @@ export function StoreLayout() {
         </div>
       </footer>
 
-      {/* Android-style bottom nav */}
-      <nav className="bottom-nav">
-        <NavLink to="/store" end className={({ isActive }) => `bottom-item ${isActive ? 'active' : ''}`}><Home size={21} /><span>الرئيسية</span></NavLink>
-        <NavLink to="/store/categories" className={({ isActive }) => `bottom-item ${isActive ? 'active' : ''}`}><Grid2X2 size={21} /><span>المنتجات</span></NavLink>
-        <NavLink to="/store/cart" className={({ isActive }) => `bottom-item ${isActive ? 'active' : ''}`}><ShoppingBag size={21} /><span>السلة</span></NavLink>
-        <NavLink to="/store/account" className={({ isActive }) => `bottom-item ${isActive ? 'active' : ''}`}><User size={21} /><span>حسابي</span></NavLink>
-      </nav>
+      {/* Floating bottom dock (mobile app shell) */}
+      <BottomDock />
     </div>
   );
 }

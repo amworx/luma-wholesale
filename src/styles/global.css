@@ -353,18 +353,199 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .table-wrap { max-width: 100%; }
 }
 
-/* Android-style bottom nav (mobile app feel) */
-.bottom-nav {
-  display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
-  background: rgba(255,255,255,.96); backdrop-filter: blur(14px);
-  border-top: 1px solid var(--line); box-shadow: 0 -4px 20px rgba(74,15,43,.06);
-  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-}
-.bottom-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; font-weight: 700; color: var(--ink-500); padding: 4px 8px; border-radius: 10px; }
-.bottom-item.active { color: var(--plum-700); }
-.bottom-item.active svg { stroke-width: 2.5; }
+/* Floating bottom dock (mobile app shell).
+   Collapsed pill of icons that grows a tray above itself. RTL-first:
+   the indicator and tray use logical properties, never left/right. */
+.dock { display: none; }
+
 @media (max-width: 768px) {
-  .bottom-nav { display: flex; justify-content: space-around; }
+  .dock {
+    display: block; position: fixed; z-index: 150;
+    inset-inline: 12px; bottom: calc(10px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; align-items: stretch;
+    pointer-events: none;
+  }
+  .dock > * { pointer-events: auto; }
+
+  /* Tray: height is measured in JS so the motion matches real content. */
+  .dock-tray {
+    overflow: hidden; margin-bottom: 8px;
+    transition: height .34s cubic-bezier(.32,.72,0,1), opacity .22s ease;
+    opacity: 0;
+  }
+  .dock-tray.is-open { opacity: 1; }
+  .dock-tray-inner {
+    background: rgba(255,255,255,.97);
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    backdrop-filter: blur(20px) saturate(1.6);
+    border: 1px solid rgba(74,15,43,.09);
+    border-radius: 20px;
+    box-shadow: 0 18px 44px rgba(74,15,43,.18), 0 2px 8px rgba(74,15,43,.06);
+    padding: 12px;
+    transform: translateY(6px) scale(.985);
+    transition: transform .34s cubic-bezier(.32,.72,0,1);
+    transform-origin: bottom center;
+  }
+  .dock-tray.is-open .dock-tray-inner { transform: translateY(0) scale(1); }
+
+  .dock-tray-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 10px; padding: 0 2px;
+  }
+  .dock-tray-title {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 800; color: var(--plum-800);
+  }
+  .dock-tray-all {
+    display: inline-flex; align-items: center; gap: 2px;
+    background: none; border: 0; padding: 4px 2px; cursor: pointer;
+    font: inherit; font-size: 11.5px; font-weight: 700; color: var(--plum-600);
+  }
+  .dock-tray-all svg { transform: scaleX(-1); }
+
+  .dock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .dock-tile {
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    padding: 12px 6px; border-radius: 14px; cursor: pointer;
+    background: var(--surface-2, #faf7f9); border: 1px solid rgba(74,15,43,.07);
+    font: inherit; font-size: 11.5px; font-weight: 700; color: var(--ink-700);
+    transition: transform .16s ease, background .16s ease;
+  }
+  .dock-tile:active { transform: scale(.96); background: var(--surface-3, #f3edf1); }
+  .dock-tile-ico {
+    display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px;
+    background: rgba(74,15,43,.07); color: var(--plum-700);
+  }
+  .dock-tile-ico.is-gold { background: rgba(201,162,39,.16); color: #8a6d10; }
+  .dock-tile-ico.is-plum { background: rgba(122,38,80,.14); color: var(--plum-700); }
+
+  .dock-cats { display: flex; flex-direction: column; gap: 2px; }
+  .dock-cat {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    padding: 9px 8px; border-radius: 11px; cursor: pointer;
+    background: none; border: 0; font: inherit; text-align: start;
+    font-size: 13px; font-weight: 600; color: var(--ink-700);
+  }
+  .dock-cat:active { background: var(--surface-2, #faf7f9); }
+  .dock-cat-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .dock-cat-name { flex: 1; }
+  .dock-cat-arrow { color: var(--ink-300); transform: scaleX(-1); }
+
+  .dock-lines { display: flex; flex-direction: column; gap: 6px; }
+  .dock-line {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--ink-700);
+  }
+  .dock-line-qty {
+    flex: none; min-width: 26px; text-align: center;
+    background: rgba(74,15,43,.07); border-radius: 7px;
+    padding: 2px 4px; font-size: 11px; font-weight: 800; color: var(--plum-700);
+  }
+  .dock-line-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dock-line-total { flex: none; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .dock-line.is-more { color: var(--ink-400); font-size: 11.5px; padding-inline-start: 34px; }
+
+  .dock-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+  }
+  .dock-foot-label { font-size: 12px; color: var(--ink-500); font-weight: 600; }
+  .dock-foot-total { font-size: 16px; color: var(--plum-800); font-variant-numeric: tabular-nums; }
+
+  .dock-cta { width: 100%; justify-content: center; margin-top: 10px; padding: 11px 16px; }
+
+  .dock-empty {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 14px 8px 10px; text-align: center; color: var(--ink-400);
+  }
+  .dock-empty strong { font-size: 13.5px; color: var(--ink-700); }
+  .dock-empty span { font-size: 11.5px; }
+  .dock-empty .btn { margin-top: 8px; }
+
+  .dock-user { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .dock-avatar {
+    display: grid; place-items: center; width: 38px; height: 38px; flex: none;
+    border-radius: 50%; background: linear-gradient(135deg, var(--plum-700), var(--plum-500));
+    color: #fff; font-weight: 800; font-size: 16px;
+  }
+  .dock-user-text { display: flex; flex-direction: column; min-width: 0; }
+  .dock-user-text strong { font-size: 13.5px; color: var(--ink-900); }
+  .dock-user-text span { font-size: 11px; color: var(--ink-400); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dock-signout {
+    display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
+    margin-top: 10px; padding: 10px; border-radius: 12px; cursor: pointer;
+    background: rgba(190,40,60,.07); border: 1px solid rgba(190,40,60,.16);
+    font: inherit; font-size: 12.5px; font-weight: 700; color: #a81f34;
+  }
+
+  /* The dock bar itself */
+  .dock-bar {
+    position: relative; display: flex; align-items: stretch;
+    background: rgba(255,255,255,.94);
+    -webkit-backdrop-filter: blur(20px) saturate(1.7);
+    backdrop-filter: blur(20px) saturate(1.7);
+    border: 1px solid rgba(74,15,43,.09);
+    border-radius: 22px;
+    box-shadow: 0 10px 30px rgba(74,15,43,.16), 0 1px 3px rgba(74,15,43,.07);
+    padding: 5px;
+    overflow: hidden;
+  }
+  /* Sliding pill behind the active tab. Inset from the cell edges so it
+     reads as a floating pill, not a segmented control. */
+  .dock-indicator {
+    position: absolute; top: 7px; bottom: 7px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(122,38,80,.13), rgba(122,38,80,.07));
+    box-shadow: inset 0 0 0 1px rgba(122,38,80,.07);
+    transition: inset-inline-start .38s cubic-bezier(.32,.72,0,1);
+    pointer-events: none;
+    margin-inline: 7px;
+  }
+  .dock-btn {
+    position: relative; z-index: 1; flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 7px 2px 6px; border: 0; background: none; cursor: pointer;
+    font: inherit; color: var(--ink-400);
+    transition: color .2s ease, transform .2s cubic-bezier(.32,.72,0,1);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dock-btn-ico { position: relative; display: grid; place-items: center; }
+  .dock-btn-label {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .1px;
+    opacity: .55; transform: translateY(1px);
+    transition: opacity .22s ease, transform .26s cubic-bezier(.32,.72,0,1);
+  }
+  .dock-btn.is-active { color: var(--plum-700); }
+  .dock-btn.is-active .dock-btn-label { opacity: 1; }
+  .dock-btn.is-open { color: var(--plum-800); transform: translateY(-1px); }
+  .dock-btn.is-open .dock-btn-ico svg { stroke-width: 2.6; }
+  .dock-btn.is-open .dock-btn-label { opacity: 1; }
+  .dock-btn:active .dock-btn-ico { transform: scale(.9); }
+
+  .dock-badge {
+    position: absolute; top: -5px; inset-inline-end: -7px;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    display: grid; place-items: center; border-radius: 9px;
+    background: var(--plum-700); color: #fff;
+    font-size: 9.5px; font-weight: 800; line-height: 1;
+    border: 1.5px solid #fff;
+  }
+  .dock-badge.is-soft { background: var(--rose-500, #c2447a); }
+
+  /* On phones the dock owns navigation, so the header's duplicate icon
+     cluster goes away. Search and the quick-order CTA stay. */
+  .header-actions .btn-icon { display: none; }
+  .header-actions { gap: 6px !important; }
+
+  /* Keep page content clear of the floating dock. */
+  .store-shell { padding-bottom: 104px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-tray, .dock-tray-inner, .dock-indicator, .dock-btn, .dock-btn-label { transition: none !important; }
+}
+
+@media (max-width: 768px) {
   header nav.container { gap: 16px; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
   .container { width: min(1240px, 100% - 28px); }
@@ -373,7 +554,10 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
    drop the quick-order label to an icon-sized pill. */
 @media (max-width: 640px) {
   header .container { height: 58px !important; gap: 8px !important; }
-  header .container > form { display: none !important; }
+  /* The dock owns navigation now, so the header keeps a compact search
+     instead of dropping it: a first-time buyer needs to find things. */
+  header .container > form { display: block !important; flex: 1 1 auto; min-width: 0; max-width: none !important; margin-inline: 0 !important; }
+  header .container > form input { height: 38px; font-size: 12.5px; padding-inline-end: 34px !important; }
   header .container > a.row > div:last-child { display: none; }
   .bulk-nav-btn { padding: 8px 10px !important; font-size: 11.5px !important; }
   header .row { gap: 0 !important; }
