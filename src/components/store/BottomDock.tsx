@@ -168,9 +168,6 @@ export function BottomDock() {
         <div className="dock-tray-inner">
           <div className="dock-tray-head">
             <span className="dock-tray-title"><ShoppingBag size={15} /> سلتك ({count})</span>
-            <button className="dock-tray-all" onClick={() => go('/store/cart')}>
-              عرض السلة <ChevronLeft size={14} />
-            </button>
           </div>
           <div className="dock-lines">
             {priced.slice(0, 3).map((l) => (
@@ -188,9 +185,14 @@ export function BottomDock() {
             <span className="dock-foot-label">المجموع</span>
             <strong className="dock-foot-total">{formatMoney(subtotal)}</strong>
           </div>
-          <button className="btn btn-primary dock-cta" onClick={() => go('/store/checkout')}>
-            إتمام الطلب <ChevronLeft size={17} />
-          </button>
+          <div className="dock-actions">
+            <button className="btn btn-primary dock-cta" onClick={() => go('/store/checkout')}>
+              إتمام الطلب <ChevronLeft size={17} />
+            </button>
+            <button className="btn btn-outline dock-cta dock-cta-alt" onClick={() => go('/store/cart')}>
+              <ShoppingBag size={16} /> عرض السلة
+            </button>
+          </div>
         </div>
       );
     }

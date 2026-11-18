@@ -1069,3 +1069,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .staff-orders h3 { font-size: 17px; margin: 0; }
 .staff-orders p { font-size: 12.5px; line-height: 1.9; margin: 0; max-width: 520px; }
 .staff-orders .btn { margin-top: 4px; }
+
+/* Dock cart tray: two clear actions, checkout and view-basket. */
+.dock-actions { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+.dock-actions .dock-cta { margin-top: 0; }
+.dock-cta-alt { background: transparent; color: var(--plum-700); border: 1px solid rgba(122,38,80,.28); }
+.dock-cta-alt:active { background: rgba(122,38,80,.07); }
