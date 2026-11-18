@@ -43,6 +43,9 @@ function migrateData(parsed: AppData): AppData {
   }));
   parsed.orders = (parsed.orders || []).map((o) => ({
     ...o,
+    lines: (o.lines || []).map((l) => ({
+      ...l, sku: l.sku ?? '', priceTier: l.priceTier ?? '', currency: l.currency ?? 'USD',
+    })),
     address: {
       ...o.address,
       latitude: o.address?.latitude ?? null,
@@ -51,6 +54,24 @@ function migrateData(parsed: AppData): AppData {
     },
   }));
   parsed.categories = (parsed.categories || []).map((c) => ({ ...c, parentId: c.parentId ?? null }));
+  // v5: wholesale reference fields on users and variants.
+  parsed.users = (parsed.users || []).map((u) => ({
+    ...u,
+    customerGroupId: u.customerGroupId ?? null,
+    accountStatus: u.accountStatus ?? 'active',
+    companyName: u.companyName ?? '',
+  }));
+  parsed.products = (parsed.products || []).map((p) => ({
+    ...p,
+    variants: (p.variants || []).map((v) => ({ ...v, packSize: v.packSize ?? 1, moq: v.moq ?? 1 })),
+  }));
+  const seedGroups = seed.customerGroups || [];
+  const groupIds = new Set((parsed.customerGroups || []).map((g) => g.id));
+  parsed.customerGroups = [...(parsed.customerGroups || []), ...seedGroups.filter((g) => !groupIds.has(g.id))];
+  const seedRules = seed.priceRules || [];
+  const ruleIds = new Set((parsed.priceRules || []).map((r) => r.id));
+  parsed.priceRules = [...(parsed.priceRules || []), ...seedRules.filter((r) => !ruleIds.has(r.id))]
+    .map((r) => ({ ...r, price: r.price ?? null, discountPct: r.discountPct ?? 0 }));
   const catIds = new Set(parsed.categories.map((c) => c.id));
   parsed.categories = [...parsed.categories, ...seed.categories.filter((c) => !catIds.has(c.id))];
   parsed.enquiries = parsed.enquiries || [];
@@ -69,7 +90,7 @@ function migrateData(parsed: AppData): AppData {
       : p
   );
   parsed.settings = { ...seed.settings, ...parsed.settings };
-  parsed.version = 4;
+  parsed.version = 5;
   return parsed;
 }
 
@@ -237,6 +258,7 @@ class Store {
     const user: User = {
       id: `u-${Date.now()}`, name, email: email.trim(), password, role: 'customer', active: true,
       createdAt: new Date().toISOString(), avatarColor: '#c9953f',
+      customerGroupId: null, accountStatus: 'pending', companyName: '',
     };
     this.commit({ ...this.data!, users: [...this.data!.users, user] });
     this.setSession({ userId: user.id, role: 'customer', name: user.name });

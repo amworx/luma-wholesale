@@ -48,6 +48,7 @@ export function StoreLayout() {
           </form>
 
           <div className="row" style={{ gap: 4, flexShrink: 0 }}>
+            <NavLink to="/store/bulk-order" className="btn btn-primary btn-sm bulk-nav-btn" title="طلب سريع بالجملة">طلب سريع</NavLink>
             <NavLink to="/store/favorites" className="btn-icon" title="المفضلة"><Heart size={21} /></NavLink>
             <Link to={session ? (dashLink || '/store/account') : '/login'} className="btn-icon" title={session ? session.name : 'حسابي'}><User size={21} /></Link>
             <Link to="/store/cart" className="btn-icon" title="السلة" style={{ position: 'relative' }}>

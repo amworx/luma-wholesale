@@ -8,7 +8,7 @@ import type { Product, ProductVariant, ShippingType } from '@/types';
 const emptyVariant = (): ProductVariant => ({
   id: `v-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
   nameAr: '', sku: '', barcode: '', costPrice: 0, retailPrice: 0, salePrice: null,
-  stock: 0, lowStockThreshold: 5, weightGrams: 100,
+  stock: 0, lowStockThreshold: 5, weightGrams: 100, packSize: 1, moq: 1,
 });
 
 const emptyProduct = (categoryId: string): Product => ({

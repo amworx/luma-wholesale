@@ -9,6 +9,7 @@ import { CartPage } from '@/pages/store/CartPage';
 import { CheckoutPage } from '@/pages/store/CheckoutPage';
 import { AccountPage } from '@/pages/store/AccountPage';
 import { FavoritesPage } from '@/pages/store/FavoritesPage';
+import { BulkOrderPage } from '@/pages/store/BulkOrderPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { SalesOverview } from '@/pages/sales/SalesOverview';
 import { SalesProducts } from '@/pages/sales/SalesProducts';
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="checkout" element={<CheckoutPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="favorites" element={<FavoritesPage />} />
+        <Route path="bulk-order" element={<BulkOrderPage />} />
       </Route>
 
       {/* Sales dashboard */}

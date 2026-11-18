@@ -8,7 +8,7 @@ import type { User, Role } from '@/types';
 
 const roleLabels: Record<Role, string> = { admin: 'مدير النظام', sales: 'فريق المبيعات', customer: 'عميل' };
 const roleBadge: Record<Role, string> = { admin: 'badge-plum', sales: 'badge-info', customer: 'badge-neutral' };
-const emptyUser = (): User => ({ id: `u-${Date.now()}`, name: '', email: '', password: '', role: 'sales', active: true, createdAt: new Date().toISOString(), avatarColor: '#7c1d4f' });
+const emptyUser = (): User => ({ id: `u-${Date.now()}`, name: '', email: '', password: '', role: 'sales', active: true, createdAt: new Date().toISOString(), avatarColor: '#7c1d4f', customerGroupId: null, accountStatus: 'active', companyName: '' });
 
 export function AdminUsers() {
   const data = useData();

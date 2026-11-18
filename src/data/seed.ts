@@ -1,4 +1,4 @@
-import type { AppData, Category, Product, ProductVariant, User, Order } from '@/types';
+import type { AppData, Category, Product, ProductVariant, User, Order, CustomerGroup, PriceRule } from '@/types';
 
 // Base-aware image path so products render at a domain root or /subpath/.
 const img = (name: string) => `${import.meta.env.BASE_URL}images/${name}.svg`;
@@ -21,13 +21,15 @@ export const seedCategories: Category[] = [
 
 function variant(
   id: string, nameAr: string, sku: string, cost: number, retail: number,
-  sale: number | null, stock: number, colorHex?: string, sizeLabel?: string
+  sale: number | null, stock: number, colorHex?: string, sizeLabel?: string,
+  packSize = 1, moq = 1
 ): ProductVariant {
   return {
     id, nameAr, sku, barcode: `619${sku.replace(/\D/g, '').padStart(10, '0').slice(0, 10)}`,
     costPrice: Math.round(cost * 100), retailPrice: Math.round(retail * 100),
     salePrice: sale === null ? null : Math.round(sale * 100),
     stock, lowStockThreshold: 5, weightGrams: 60, colorHex, sizeLabel,
+    packSize, moq,
   };
 }
 
@@ -228,10 +230,28 @@ export const seedProducts: Product[] = [
   },
 ];
 
+export const seedCustomerGroups: CustomerGroup[] = [
+  { id: 'g-retail', nameAr: 'متاجر التجزئة', descriptionAr: 'السعر الافتراضي للجملة', active: true },
+  { id: 'g-wholesale', nameAr: 'تجار الجملة', descriptionAr: 'خصم إضافي للكميات الكبيرة', active: true },
+  { id: 'g-vip', nameAr: 'عملاء مميزون', descriptionAr: 'أفضل سعر للعملاء الدائمين', active: true },
+];
+
 export const seedUsers: User[] = [
-  { id: 'u-admin', name: 'سامر الحسن', email: 'admin@luma.sy', password: 'admin123', role: 'admin', active: true, createdAt: now, avatarColor: '#7c1d4f' },
-  { id: 'u-sales', name: 'محمد العلي', email: 'sales@luma.sy', password: 'sales123', role: 'sales', active: true, createdAt: now, avatarColor: '#4d8ba3' },
-  { id: 'u-customer', name: 'رنا خالد', email: 'customer@example.com', password: 'customer123', role: 'customer', active: true, createdAt: now, avatarColor: '#c9953f' },
+  { id: 'u-admin', name: 'سامر الحسن', email: 'admin@luma.sy', password: 'admin123', role: 'admin', active: true, createdAt: now, avatarColor: '#7c1d4f', customerGroupId: null, accountStatus: 'active', companyName: '' },
+  { id: 'u-sales', name: 'محمد العلي', email: 'sales@luma.sy', password: 'sales123', role: 'sales', active: true, createdAt: now, avatarColor: '#4d8ba3', customerGroupId: null, accountStatus: 'active', companyName: '' },
+  { id: 'u-customer', name: 'رنا خالد', email: 'customer@example.com', password: 'customer123', role: 'customer', active: true, createdAt: now, avatarColor: '#c9953f', customerGroupId: 'g-wholesale', accountStatus: 'active', companyName: 'مستحضرات رنا' },
+];
+
+/** Demo price rules. Reference data only; not financially authoritative. */
+export const seedPriceRules: PriceRule[] = [
+  // Default wholesale: 10% off retail for everyone, any quantity.
+  { id: 'pr-def-10', scope: 'default', scopeId: null, productId: null, variantId: null, minQty: 1, price: null, discountPct: 10, validFrom: null, validTo: null, active: true, noteAr: 'سعر الجملة الافتراضي: خصم 10%' },
+  // Quantity tier: 12+ units of the velvet lipstick at a fixed price.
+  { id: 'pr-def-lv-12', scope: 'default', scopeId: null, productId: 'p-lip-velvet', variantId: null, minQty: 12, price: 750, discountPct: 0, validFrom: null, validTo: null, active: true, noteAr: 'سعر الكرتونة (12 وحدة)' },
+  // Group price for wholesale customers on all products.
+  { id: 'pr-grp-ws', scope: 'group', scopeId: 'g-wholesale', productId: null, variantId: null, minQty: 1, price: null, discountPct: 15, validFrom: null, validTo: null, active: true, noteAr: 'سعر تجار الجملة: خصم 15%' },
+  // Individual negotiated price for the demo customer on the lip gloss.
+  { id: 'pr-cust-lg', scope: 'customer', scopeId: 'u-customer', productId: 'p-lipgloss', variantId: null, minQty: 1, price: 690, discountPct: 0, validFrom: '2026-01-01', validTo: '2027-12-31', active: true, noteAr: 'سعر تفاوضي خاص' },
 ];
 
 const emptyAddress = {
@@ -245,6 +265,7 @@ export const seedOrders: Order[] = [
     lines: [{
       productId: 'p-lip-velvet', variantId: 'v-lv-01', productNameAr: 'أحمر شفاه مخملي', variantNameAr: 'أحمر كرزي',
       image: img('lipstick-velvet'), unitPrice: 890, quantity: 2, lineTotal: 1780,
+      sku: 'LM-LV-01', priceTier: 'سعر الجملة', currency: 'USD',
     }],
     subtotal: 1780, shippingFee: 800, discount: 0, total: 2580,
     status: 'new', paymentMethod: 'pending',
@@ -257,6 +278,7 @@ export const seedOrders: Order[] = [
     lines: [{
       productId: 'p-perfume-rose', variantId: 'v-pr-01', productNameAr: 'عطر ورد ليلي', variantNameAr: '50 مل',
       image: img('perfume-rose'), unitPrice: 3990, quantity: 1, lineTotal: 3990,
+      sku: 'LM-PR-01', priceTier: 'سعر الجملة', currency: 'USD',
     }],
     subtotal: 3990, shippingFee: 0, discount: 200, total: 3790,
     status: 'shipped', paymentMethod: 'bank_transfer',
@@ -269,6 +291,7 @@ export const seedOrders: Order[] = [
     lines: [{
       productId: 'p-serum-glow', variantId: 'v-sg-01', productNameAr: 'سيروم الإشراقة', variantNameAr: '30 مل',
       image: img('serum-glow'), unitPrice: 1890, quantity: 1, lineTotal: 1890,
+      sku: 'LM-SG-01', priceTier: 'سعر الجملة', currency: 'USD',
     }],
     subtotal: 1890, shippingFee: 800, discount: 0, total: 2690,
     status: 'delivered', paymentMethod: 'cod',
@@ -280,8 +303,10 @@ export const seedOrders: Order[] = [
 
 export function createSeedData(): AppData {
   return {
-    version: 3,
+    version: 5,
     users: structuredClone(seedUsers),
+    customerGroups: structuredClone(seedCustomerGroups),
+    priceRules: structuredClone(seedPriceRules),
     categories: structuredClone(seedCategories),
     products: structuredClone(seedProducts),
     orders: structuredClone(seedOrders),

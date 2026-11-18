@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, CheckCircle2, FileText, Printer, PackageCheck } from 'lucide-react';
-import { useData, useSession, store, effectivePrice, formatMoney } from '@/data/store';
+import { useData, useSession, store, formatMoney } from '@/data/store';
 import { useCart } from '@/state/CartContext';
 import { useToast } from '@/components/ui/Toast';
 import { LocationPicker, type PickedLocation } from '@/components/store/LocationPicker';
@@ -16,7 +16,7 @@ const emptyAddress: ShippingAddress = {
 export function CheckoutPage() {
   const data = useData();
   const session = useSession();
-  const { lines, subtotal, clear } = useCart();
+  const { priced, subtotal, clear } = useCart();
   const toast = useToast();
   const [address, setAddress] = useState<ShippingAddress>({ ...emptyAddress, fullName: session?.name || '' });
   const [placed, setPlaced] = useState<Order | null>(null);
@@ -38,10 +38,10 @@ export function CheckoutPage() {
   };
 
   if (!data) return null;
-  const details = lines.map((line) => {
+  const details = priced.map((line) => {
     const p = data.products.find((x) => x.id === line.productId)!;
     const v = p.variants.find((x) => x.id === line.variantId)!;
-    return { line, p, v, price: effectivePrice(v) };
+    return { line, p, v, price: line.unitPrice };
   }).filter((d) => d.p && d.v);
   const shipping = subtotal >= data.settings.freeShippingOver ? 0 : data.settings.defaultShippingFee;
   const total = subtotal + shipping;
@@ -59,6 +59,7 @@ export function CheckoutPage() {
       lines: details.map(({ line, p, v, price }) => ({
         productId: p.id, variantId: v.id, productNameAr: p.nameAr, variantNameAr: v.nameAr,
         image: p.images[0], unitPrice: price, quantity: line.quantity, lineTotal: price * line.quantity,
+        sku: v.sku, priceTier: line.tierLabel, currency: data.settings.currency,
       })),
       subtotal, shippingFee: shipping, discount: 0, total,
       status: 'new', paymentMethod: 'pending', address,

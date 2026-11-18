@@ -3,6 +3,8 @@
 
 export type Role = 'admin' | 'sales' | 'customer';
 
+export type AccountStatus = 'active' | 'pending' | 'suspended' | 'rejected';
+
 export interface User {
   id: string;
   name: string;
@@ -12,6 +14,17 @@ export interface User {
   active: boolean;
   createdAt: string;
   avatarColor: string;
+  // B2B customer fields (demo reference data, not an authorization mechanism).
+  customerGroupId: string | null;
+  accountStatus: AccountStatus;
+  companyName: string;
+}
+
+export interface CustomerGroup {
+  id: string;
+  nameAr: string;
+  descriptionAr: string;
+  active: boolean;
 }
 
 export interface Category {
@@ -39,6 +52,9 @@ export interface ProductVariant {
   weightGrams: number;
   colorHex?: string;
   sizeLabel?: string;
+  // Wholesale ordering reference data (demo).
+  packSize: number;      // units per pack/carton; 1 = sold as singles
+  moq: number;           // minimum order quantity in units
 }
 
 export type ShippingType = 'standard' | 'express' | 'free' | 'local_pickup';
@@ -76,9 +92,12 @@ export interface OrderLine {
   productNameAr: string;
   variantNameAr: string;
   image: string;
-  unitPrice: number; // US cents, price at purchase
+  unitPrice: number; // US cents, price snapshot at submission
   quantity: number;
   lineTotal: number; // US cents
+  sku: string;              // snapshot for the sales report
+  priceTier: string;        // applied pricing tier label
+  currency: string;         // snapshot: USD
 }
 
 export interface ShippingAddress {
@@ -145,6 +164,26 @@ export interface ProductEnquiry {
   createdAt: string;
 }
 
+/**
+ * Demo price rule. Prices are reference data for quotations, not a financial
+ * authority. Resolution priority: customer > group > default, and within each
+ * tier the smallest matching minQty wins. Date bounds are inclusive.
+ */
+export interface PriceRule {
+  id: string;
+  scope: 'default' | 'group' | 'customer';
+  scopeId: string | null;   // group id or user id; null for 'default'
+  productId: string | null; // null = applies to all products
+  variantId: string | null; // null = applies to all variants of the product
+  minQty: number;           // quantity tier threshold
+  price: number | null;     // fixed US cents; null = use discountPct off retail
+  discountPct: number;      // 0-100 percentage off retail when price is null
+  validFrom: string | null; // ISO date, null = no start bound
+  validTo: string | null;   // ISO date, null = no end bound
+  active: boolean;
+  noteAr: string;
+}
+
 export interface StoreSettings {
   storeNameAr: string;
   storeNameEn: string;
@@ -166,6 +205,8 @@ export interface StoreSettings {
 export interface AppData {
   version: number;
   users: User[];
+  customerGroups: CustomerGroup[];
+  priceRules: PriceRule[];
   categories: Category[];
   products: Product[];
   orders: Order[];
