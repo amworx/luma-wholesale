@@ -1,7 +1,7 @@
 ﻿import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Home, LayoutGrid, ShoppingBag, Heart, User,
+  Home, LayoutGrid, ShoppingBag, Heart, User, Settings, LayoutDashboard,
   LogIn, LogOut, Zap, Package, Sparkles, ChevronLeft,
 } from 'lucide-react';
 import { useData, useSession, topCategories, formatMoney, store } from '@/data/store';
@@ -239,6 +239,9 @@ export function BottomDock() {
       );
     }
 
+    const isStaff = session.role !== 'customer';
+    const dashHome = session.role === 'admin' ? '/admin' : '/sales';
+
     return (
       <div className="dock-tray-inner">
         <div className="dock-user">
@@ -248,16 +251,34 @@ export function BottomDock() {
             <span>{session.role === 'admin' ? 'مدير المتجر' : session.role === 'sales' ? 'فريق المبيعات' : 'حساب تاجر'}</span>
           </span>
         </div>
+
+        {/* Staff accounts get the dashboard first: their work lives there. */}
+        {isStaff && (
+          <button className="dock-dash" onClick={() => go(dashHome)}>
+            <span className="dock-dash-ico"><LayoutDashboard size={18} /></span>
+            <span className="dock-dash-text">
+              <strong>لوحة التحكم</strong>
+              <small>{session.role === 'admin' ? 'إدارة المتجر والمستخدمين' : 'المنتجات والطلبات'}</small>
+            </span>
+            <ChevronLeft size={16} />
+          </button>
+        )}
+
         <div className="dock-grid">
           <button className="dock-tile" onClick={() => go('/store/account')}>
-            <span className="dock-tile-ico"><Package size={18} /></span>
-            <span>طلباتي</span>
+            <span className="dock-tile-ico"><User size={18} /></span>
+            <span>ملفي الشخصي</span>
           </button>
-          <button className="dock-tile" onClick={() => go('/store/favorites')}>
-            <span className="dock-tile-ico"><Heart size={18} /></span>
-            <span>المفضلة</span>
+          <button className="dock-tile" onClick={() => go('/store/account?tab=orders')}>
+            <span className="dock-tile-ico"><Package size={18} /></span>
+            <span>{isStaff ? 'طلبات المتجر' : 'طلباتي'}</span>
+          </button>
+          <button className="dock-tile" onClick={() => go('/store/account?tab=settings')}>
+            <span className="dock-tile-ico"><Settings size={18} /></span>
+            <span>بيانات الحساب</span>
           </button>
         </div>
+
         <button
           className="dock-signout"
           onClick={() => { store.logout(); setOpen(null); navigate('/store'); }}

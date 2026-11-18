@@ -990,12 +990,13 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 }
 @media (max-width: 520px) {
   .profile-cover { height: 110px; }
-  .profile-identity { padding: 12px 14px 0; gap: 12px; flex-wrap: nowrap; align-items: center; }
+  .profile-identity { padding: 12px 14px 0; gap: 12px; flex-wrap: wrap; align-items: center; }
   .profile-avatar { width: 64px; height: 64px; font-size: 25px; margin-top: -34px; border-radius: 18px; }
-  .profile-id-text { min-width: 0; padding-top: 0; }
+  .profile-id-text { min-width: 0; padding-top: 0; flex: 1 1 auto; }
   .profile-id-text h1 { font-size: 18px; margin-bottom: 4px; }
   .profile-id-meta { gap: 8px; font-size: 10.5px; flex-direction: column; align-items: flex-start; }
-  .profile-logout { width: 100%; margin-top: 12px; }
+  /* Full-width logout must sit on its own row, not inside the avatar row. */
+  .profile-logout { width: 100%; margin-top: 12px; flex: 0 0 100%; justify-content: center; }
   .profile-cover-title { display: none; }
   .profile-quick { grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 18px; }
   .quick-tile { padding: 12px; gap: 9px; flex-wrap: wrap; }
@@ -1041,3 +1042,30 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .cat-node-row { flex-wrap: wrap; }
   .cat-node-row .row { width: 100%; justify-content: flex-end; }
 }
+
+/* Dashboard header profile block: a real link to the account page. */
+.dash-profile { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 12px; color: inherit; text-decoration: none; transition: background .16s ease; }
+.dash-profile:hover { background: rgba(74,15,43,.05); }
+.dash-profile:active { background: rgba(74,15,43,.09); }
+
+/* Dock: dashboard entry for staff accounts. */
+.dock-dash {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  margin-bottom: 10px; padding: 10px; border-radius: 14px; cursor: pointer;
+  background: linear-gradient(135deg, rgba(122,38,80,.1), rgba(122,38,80,.05));
+  border: 1px solid rgba(122,38,80,.16);
+  font: inherit; text-align: start; color: var(--plum-800);
+}
+.dock-dash:active { background: rgba(122,38,80,.16); }
+.dock-dash-ico { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 11px; background: var(--plum-700); color: #fff; }
+.dock-dash-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.dock-dash-text strong { font-size: 13px; }
+.dock-dash-text small { font-size: 10.5px; color: var(--ink-400); }
+.dock-dash > svg { color: var(--plum-600); transform: scaleX(-1); }
+
+/* Account page: staff accounts do not have a personal order list. */
+.staff-orders { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.staff-orders-ico { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; background: rgba(122,38,80,.1); color: var(--plum-700); }
+.staff-orders h3 { font-size: 17px; margin: 0; }
+.staff-orders p { font-size: 12.5px; line-height: 1.9; margin: 0; max-width: 520px; }
+.staff-orders .btn { margin-top: 4px; }

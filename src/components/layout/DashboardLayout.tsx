@@ -81,13 +81,13 @@ export function DashboardLayout({ mode }: { mode: 'admin' | 'sales' }) {
             </span>
           </div>
           <div className="grow" />
-          <div className="row" style={{ gap: 10 }}>
+          <Link to="/store/account" className="dash-profile" title="الملف الشخصي">
             <div style={{ textAlign: 'right', lineHeight: 1.2 }}>
               <div style={{ fontSize: 13, fontWeight: 800 }}>{session?.name}</div>
               <div className="muted" style={{ fontSize: 11 }}>{session?.role === 'admin' ? 'admin@luma.sy' : 'sales@luma.sy'}</div>
             </div>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: accent, color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 800 }}>{session?.name.charAt(0)}</div>
-          </div>
+          </Link>
         </header>
         <div style={{ padding: '26px 30px 50px' }}><Outlet /></div>
       </div>

@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+﻿import { useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   User as UserIcon, Package, LogOut, ShoppingBag, Wallet, Truck, CheckCircle2, Clock,
   ChevronDown, MapPin, Phone, Mail, CalendarDays, Pencil, Save, X,
   Boxes, BadgeCheck, FileText, Home, AlertCircle, FileDown, Printer,
-  Sparkles, Zap, Heart, ArrowLeft, Building2,
+  Sparkles, Zap, Heart, ArrowLeft, Building2, LayoutDashboard,
 } from 'lucide-react';
 import { useData, useSession, store, formatMoney } from '@/data/store';
 import { exportReportPdf } from '@/data/exportPdf';
@@ -30,12 +30,19 @@ const steps: { label: string; icon: React.ReactNode }[] = [
 
 type Tab = 'overview' | 'orders' | 'settings';
 
+const TAB_IDS: Tab[] = ['overview', 'orders', 'settings'];
+
 export function AccountPage() {
   const data = useData();
   const session = useSession();
   const navigate = useNavigate();
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>('overview');
+  // The tab lives in the URL so links can land directly on it
+  // (#/store/account?tab=orders) and the back button behaves.
+  const [params, setParams] = useSearchParams();
+  const rawTab = params.get('tab');
+  const tab: Tab = TAB_IDS.includes(rawTab as Tab) ? (rawTab as Tab) : 'overview';
+  const setTab = (next: Tab) => setParams(next === 'overview' ? {} : { tab: next }, { replace: true });
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<{ name: string; email: string; password: string }>({ name: '', email: '', password: '' });
@@ -78,9 +85,11 @@ export function AccountPage() {
     toast.show('تم حفظ بيانات الحساب', 'success');
   };
 
+  const isStaff = session.role !== 'customer';
+
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'overview', label: 'نظرة عامة', icon: <Home size={17} /> },
-    { id: 'orders', label: `طلباتي (${myOrders.length})`, icon: <Package size={17} /> },
+    { id: 'orders', label: isStaff ? 'طلبات المتجر' : `طلباتي (${myOrders.length})`, icon: <Package size={17} /> },
     { id: 'settings', label: 'بيانات الحساب', icon: <UserIcon size={17} /> },
   ];
 
@@ -140,7 +149,7 @@ export function AccountPage() {
         </Link>
         <button className="quick-tile" onClick={() => setTab('orders')}>
           <span className="quick-icon"><Package size={20} /></span>
-          <span><strong>طلباتي</strong><small>{stats.pending} قيد المعالجة</small></span>
+          <span><strong>{isStaff ? 'طلبات المتجر' : 'طلباتي'}</strong><small>{isStaff ? 'من لوحة التحكم' : `${stats.pending} قيد المعالجة`}</small></span>
           <ArrowLeft size={17} className="quick-arrow" />
         </button>
       </div>
@@ -193,7 +202,19 @@ export function AccountPage() {
 
       {tab === 'orders' && (
         <div className="profile-body">
-          {myOrders.length ? myOrders.map((o) => (
+          {session.role !== 'customer' ? (
+            <div className="card card-pad staff-orders">
+              <span className="staff-orders-ico"><LayoutDashboard size={24} /></span>
+              <h3>طلبات المتجر تُدار من لوحة التحكم</h3>
+              <p className="muted">
+                حسابك حساب {session.role === 'admin' ? 'مدير نظام' : 'فريق مبيعات'}، وليس حساب عميل.
+                كل طلبات العملاء موجودة في لوحة التحكم حيث يمكنك متابعتها وتحديث حالتها.
+              </p>
+              <Link to={session.role === 'admin' ? '/admin/orders' : '/sales/orders'} className="btn btn-primary">
+                <LayoutDashboard size={16} /> فتح الطلبات في لوحة التحكم
+              </Link>
+            </div>
+          ) : myOrders.length ? myOrders.map((o) => (
             <OrderCard key={o.id} order={o} expanded={expanded === o.id} onToggle={() => setExpanded(expanded === o.id ? null : o.id)} />
           )) : <EmptyState title="لا توجد طلبات بعد" description="عند إتمام أول طلب ستجده هنا." action={<Link to="/store/categories" className="btn btn-primary btn-sm">تصفّح المنتجات</Link>} />}
         </div>
