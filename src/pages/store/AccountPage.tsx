@@ -134,7 +134,7 @@ export function AccountPage() {
       <div className="profile-quick">
         <Link to="/store/bulk-order" className="quick-tile quick-primary">
           <span className="quick-icon"><Zap size={20} /></span>
-          <span><strong>طلب سريع بالجملة</strong><small>أدخل الأكواد والكميات دفعة واحدة</small></span>
+          <span><strong>طلب بالجملة</strong><small>أدخل الأكواد والكميات دفعة واحدة</small></span>
           <ArrowLeft size={17} className="quick-arrow" />
         </Link>
         <Link to="/store/cart" className="quick-tile">

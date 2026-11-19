@@ -103,7 +103,7 @@ export function BulkOrderPage() {
     <div className="container bulk-page">
       <div className="bulk-head">
         <div>
-          <h1 className="section-title row" style={{ gap: 10 }}><Layers size={26} color="var(--plum-700)" /> طلب سريع بالجملة</h1>
+          <h1 className="section-title row" style={{ gap: 10 }}><Layers size={26} color="var(--plum-700)" /> طلب بالجملة</h1>
           <p className="muted" style={{ marginTop: 6, fontSize: 13 }}>ابحث بالاسم أو الـ SKU وأدخل الكميات مباشرة. الأسعار تتحدث حسب الكمية ونوع العميل.</p>
         </div>
         <button className="btn btn-outline" onClick={reorder}><RotateCcw size={16} /> إعادة طلب سابق</button>

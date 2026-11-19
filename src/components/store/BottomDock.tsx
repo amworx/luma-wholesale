@@ -122,7 +122,7 @@ export function BottomDock() {
             </button>
             <button className="dock-tile" onClick={() => go('/store/bulk-order')}>
               <span className="dock-tile-ico is-plum"><Zap size={18} /></span>
-              <span>طلب سريع</span>
+              <span>طلب بالجملة</span>
             </button>
           </div>
         </div>
