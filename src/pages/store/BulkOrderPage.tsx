@@ -126,20 +126,20 @@ export function BulkOrderPage() {
                   const qc = qty > 0 ? checkQuantity(v, qty) : null;
                   return (
                     <tr key={v.id}>
-                      <td>
+                      <td data-label="المنتج">
                         <div className="row" style={{ gap: 9 }}>
                           <img src={p.images[0]} alt="" className="bulk-thumb" />
                           <div><div style={{ fontWeight: 700, fontSize: 13 }}>{p.nameAr}</div><div className="muted" style={{ fontSize: 11 }}>{v.nameAr}</div></div>
                         </div>
                       </td>
-                      <td dir="ltr" className="muted" style={{ fontSize: 11 }}>{v.sku}</td>
-                      <td><span className="badge badge-neutral" style={{ fontSize: 10 }}>{v.packSize} / عبوة</span><div className="muted" style={{ fontSize: 10, marginTop: 3 }}>حد أدنى {v.moq}</div></td>
-                      <td className={v.stock < v.lowStockThreshold ? 'text-danger' : ''} style={{ fontSize: 12 }}>{v.stock}</td>
-                      <td>
+                      <td data-label="SKU" className="muted" style={{ fontSize: 11 }}><span dir="ltr">{v.sku}</span></td>
+                      <td data-label="التغليف"><span className="badge badge-neutral" style={{ fontSize: 10 }}>{v.packSize} / عبوة</span><div className="muted" style={{ fontSize: 10, marginTop: 3 }}>حد أدنى {v.moq}</div></td>
+                      <td data-label="المخزون" className={v.stock < v.lowStockThreshold ? 'text-danger' : ''} style={{ fontSize: 12 }}>{v.stock}</td>
+                      <td data-label="السعر">
                         <strong style={{ color: 'var(--plum-700)', fontSize: 13 }}>{formatMoney(pricing.unitPrice)}</strong>
                         {pricing.source !== 'base' && <div className="muted row" style={{ gap: 3, fontSize: 9 }}><Tag size={9} /> {pricing.tierLabel}</div>}
                       </td>
-                      <td>
+                      <td data-label="الكمية">
                         <input className="input bulk-qty" type="number" min={0} value={qty || ''} placeholder="0" onChange={(e) => setQty(v.id, Number(e.target.value))} />
                         {qc && !qc.valid && <div className="text-danger" style={{ fontSize: 9, marginTop: 3 }} title={qc.messageAr}>{qc.messageAr}</div>}
                       </td>
