@@ -1322,3 +1322,44 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .hv-btn:hover { transform: none; }
   .hv-e-card { transition: none; }
 }
+
+/* ---- Dense variant rows for products with many variants ---- */
+.bulk-variants.is-compact { padding: 8px 10px 10px; gap: 0; }
+.bulk-fill { background: var(--rose-50); border: 1px solid var(--rose-200); border-radius: 10px; padding: 9px 10px; margin-bottom: 8px; }
+.bulk-fill-label { display: block; font-size: 11px; font-weight: 800; color: var(--plum-700); margin-bottom: 7px; }
+.bulk-fill-row { display: flex; align-items: center; gap: 6px; }
+.bulk-fill-input { flex: 1; min-width: 0; height: 34px; text-align: center; }
+.bulk-fill-row .btn { flex: none; }
+.bulk-fill-hint { display: block; font-size: 9.5px; color: var(--ink-400); margin-top: 6px; line-height: 1.5; }
+.bulv-head { display: grid; grid-template-columns: minmax(0,1fr) 78px 118px; gap: 8px; padding: 4px 8px 6px; font-size: 10px; font-weight: 800; color: var(--ink-400); border-bottom: 1px solid var(--line); }
+.bulv-head span:nth-child(2), .bulv-head span:nth-child(3) { text-align: center; }
+.bulv-row { display: grid; grid-template-columns: minmax(0,1fr) 78px 118px; gap: 8px; align-items: center; padding: 8px; border-bottom: 1px solid var(--line); }
+.bulv-row:last-child { border-bottom: 0; }
+.bulv-row.has-qty { background: var(--rose-50); border-radius: 8px; }
+.bulv-name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.bulv-name strong { font-size: 12px; color: var(--ink-900); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bulv-name > span.muted { font-size: 9px; }
+.bulv-meta { font-size: 9px; color: var(--ink-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bulv-price { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.bulv-price strong { font-size: 12px; color: var(--plum-700); white-space: nowrap; }
+.bulv-price .badge { display: none; } /* long tier label would overflow the narrow price column */
+.bulv-qty .bulk-stepper { justify-content: center; }
+.bulv-qty .bulk-stepper button { width: 28px; height: 28px; }
+.bulv-qty .bulk-qty { width: 44px; flex: none; height: 30px; text-align: center; padding: 4px 2px; font-size: 12px; }
+.bulv-err { grid-column: 1 / -1; font-size: 10px; }
+@media (max-width: 700px) {
+  /* Phone: genuinely single-line rows so many variants stay scannable.
+     Identity truncates; price and stepper stay fixed. */
+  .bulv-head { display: none; }
+  .bulv-row { grid-template-columns: minmax(0,1fr) auto auto; grid-template-areas: 'name price qty'; gap: 7px; padding: 6px 7px; }
+  .bulv-name { grid-area: name; }
+  .bulv-name > span.muted { display: none; }
+  .bulv-meta { font-size: 8.5px; }
+  .bulv-price { grid-area: price; align-items: flex-end; }
+  .bulv-price .badge { display: none; }
+  .bulv-price strong { font-size: 11px; }
+  .bulv-qty { grid-area: qty; }
+  .bulv-qty .bulk-stepper { gap: 3px; }
+  .bulv-qty .bulk-stepper button { width: 26px; height: 28px; }
+  .bulv-qty .bulk-qty { width: 38px; height: 28px; font-size: 11px; }
+}

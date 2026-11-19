@@ -368,8 +368,30 @@ function ProductShelf({ title, sub, products, ...rest }: GridProps & { title: st
 
 function ProductCard({ product, data, customer, rows, setQty, nudge, expanded, setExpanded }: Omit<GridProps, 'products'> & { product: Product }) {
   const isOpen = expanded === product.id;
+  const [fillQty, setFillQty] = useState(0);
+  // Products with many variants switch to a dense, aligned row layout so a
+  // 6-variant item doesn't push half a screen of stacked cards down the page.
+  const compact = product.variants.length >= 4;
   const inCart = product.variants.reduce((s, v) => s + (rows[v.id] || 0), 0);
   const minPrice = Math.min(...product.variants.map((v) => resolveUnitPrice(data, v, product.id, v.moq, customer).unitPrice));
+
+  // Apply one quantity to every variant, normalising each to its own pack/MOQ.
+  const applyFill = () => {
+    if (fillQty <= 0) {
+      product.variants.forEach((v) => setQty(v.id, 0));
+      return;
+    }
+    let adjusted = 0;
+    product.variants.forEach((v) => {
+      const c = checkQuantity(v, fillQty);
+      const q = c.valid ? fillQty : c.adjusted;
+      if (q !== fillQty) adjusted++;
+      setQty(v.id, q);
+    });
+    // Feedback is optional; the rows themselves show the applied quantities.
+    void adjusted;
+  };
+
   return (
     <div className={`bulk-product ${inCart > 0 ? 'has-qty' : ''}`}>
       <button className="bulk-product-top" onClick={() => setExpanded(isOpen ? null : product.id)}>
@@ -387,22 +409,65 @@ function ProductCard({ product, data, customer, rows, setQty, nudge, expanded, s
         <ChevronDown size={16} className={`bulk-product-chev ${isOpen ? 'open' : ''}`} />
       </button>
       {isOpen && (
-        <div className="bulk-variants">
-          {product.variants.map((v) => <VariantRow key={v.id} product={product} variant={v} data={data} customer={customer} rows={rows} setQty={setQty} nudge={nudge} />)}
+        <div className={`bulk-variants ${compact ? 'is-compact' : ''}`}>
+          {compact && (
+            <div className="bulk-fill">
+              <span className="bulk-fill-label">ضبط سريع لكل الخيارات ({product.variants.length})</span>
+              <div className="bulk-fill-row">
+                <input className="input bulk-fill-input" type="number" min={0} value={fillQty || ''} placeholder="الكمية" onChange={(e) => setFillQty(Number(e.target.value))} aria-label="كمية لكل الخيارات" />
+                <button className="btn btn-primary btn-sm" onClick={applyFill}>تطبيق</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setFillQty(0); product.variants.forEach((v) => setQty(v.id, 0)); }}>مسح</button>
+              </div>
+              <span className="bulk-fill-hint">تُضبط الكمية على حد أدنى/مضاعفات العبوة لكل خيار تلقائياً.</span>
+            </div>
+          )}
+          {compact && (
+            <div className="bulv-head" aria-hidden="true">
+              <span>الخيار / SKU</span><span>السعر</span><span>الكمية</span>
+            </div>
+          )}
+          {product.variants.map((v) => <VariantRow key={v.id} product={product} variant={v} data={data} customer={customer} rows={rows} setQty={setQty} nudge={nudge} compact={compact} />)}
         </div>
       )}
     </div>
   );
 }
 
-function VariantRow({ product, variant, data, customer, rows, setQty, nudge }: {
+function VariantRow({ product, variant, data, customer, rows, setQty, nudge, compact }: {
   product: Product; variant: ProductVariant; data: AppData;
   customer: GridProps['customer']; rows: Record<string, number>;
   setQty: (id: string, qty: number) => void; nudge: (id: string, delta: number, pack: number) => void;
+  compact?: boolean;
 }) {
   const qty = rows[variant.id] || 0;
   const pricing = resolveUnitPrice(data, variant, product.id, Math.max(qty, variant.moq), customer);
   const qc = qty > 0 ? checkQuantity(variant, qty) : null;
+  const stepper = (
+    <div className="bulk-stepper">
+      <button onClick={() => nudge(variant.id, -1, variant.packSize)} aria-label="إنقاص"><Minus size={14} /></button>
+      <input className="input bulk-qty" type="number" min={0} value={qty || ''} placeholder="0" onChange={(e) => setQty(variant.id, Number(e.target.value))} aria-label="الكمية" />
+      <button onClick={() => nudge(variant.id, 1, variant.packSize)} aria-label="زيادة"><Plus size={14} /></button>
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <div className={`bulv-row ${qty > 0 ? 'has-qty' : ''}`}>
+        <div className="bulv-name">
+          <strong>{variant.nameAr}</strong>
+          <span className="muted" dir="ltr">{variant.sku}</span>
+          <span className="bulv-meta">{variant.packSize}/عبوة · حد أدنى {variant.moq} · المخزون: <b className={variant.stock < variant.lowStockThreshold ? 'text-danger' : ''}>{variant.stock}</b></span>
+        </div>
+        <div className="bulv-price">
+          <strong>{formatMoney(pricing.unitPrice)}</strong>
+          {pricing.source !== 'base' && <span className="badge badge-neutral" style={{ fontSize: 8 }}><Tag size={8} /> {pricing.tierLabel}</span>}
+        </div>
+        <div className="bulv-qty">{stepper}</div>
+        {qc && !qc.valid && <div className="bulv-err text-danger">{qc.messageAr} · <button className="link-btn" onClick={() => setQty(variant.id, qc.adjusted)}>اضبط إلى {qc.adjusted}</button></div>}
+      </div>
+    );
+  }
+
   return (
     <div className="bulk-variant">
       <div className="bulk-variant-head">
@@ -416,11 +481,7 @@ function VariantRow({ product, variant, data, customer, rows, setQty, nudge }: {
         <span>{variant.packSize} / عبوة · حد أدنى {variant.moq}</span>
         <span className={variant.stock < variant.lowStockThreshold ? 'text-danger' : ''}>المخزون: {variant.stock}</span>
       </div>
-      <div className="bulk-stepper">
-        <button onClick={() => nudge(variant.id, -1, variant.packSize)} aria-label="إنقاص"><Minus size={14} /></button>
-        <input className="input bulk-qty" type="number" min={0} value={qty || ''} placeholder="0" onChange={(e) => setQty(variant.id, Number(e.target.value))} aria-label="الكمية" />
-        <button onClick={() => nudge(variant.id, 1, variant.packSize)} aria-label="زيادة"><Plus size={14} /></button>
-      </div>
+      {stepper}
       {qc && !qc.valid && <div className="text-danger" style={{ fontSize: 10, marginTop: 4 }}>{qc.messageAr}</div>}
     </div>
   );
