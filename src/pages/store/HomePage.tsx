@@ -3,7 +3,7 @@ import { ArrowLeft, Sparkles, Truck, ShieldCheck, RotateCcw } from 'lucide-react
 import * as Icons from 'lucide-react';
 import { useData, formatMoney } from '@/data/store';
 import { ProductCard } from '@/components/store/ProductCard';
-import { HeroShowcase } from '@/components/store/HeroVariants';
+import { Hero } from '@/components/store/Hero';
 
 export function HomePage() {
   const data = useData();
@@ -14,8 +14,8 @@ export function HomePage() {
 
   return (
     <div>
-      {/* Hero: three selectable modern concepts */}
-      <HeroShowcase />
+      {/* Hero */}
+      <Hero />
 
       {/* Trust strip */}
       <div className="container" style={{ marginTop: 22 }}>
