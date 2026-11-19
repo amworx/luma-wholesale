@@ -1294,3 +1294,128 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .hero-elastic .row[style*="gap: 22px"] { margin-top: 14px !important; gap: 10px !important; font-size: 10.5px !important; }
   .hero-elastic .badge { margin-bottom: 10px !important; }
 }
+
+/* ==================================================================
+   Hero concepts (preview switcher). Fresh namespace `hv-*` so none of
+   the legacy .hero/.elastic-* overrides interfere. RTL-first throughout.
+   ================================================================== */
+.hv-showcase { padding-top: 22px; }
+.hv-switch { width: min(1240px, 100% - 28px); margin: 0 auto 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border: 1px dashed var(--plum-300); border-radius: 14px; background: var(--rose-50); }
+.hv-switch-label { font-size: 12px; font-weight: 800; color: var(--plum-700); }
+.hv-switch-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.hv-switch-btns button { border: 1px solid var(--plum-300); background: var(--surface); color: var(--plum-700); font-weight: 800; font-size: 12px; padding: 7px 14px; border-radius: 9px; cursor: pointer; transition: all .2s; }
+.hv-switch-btns button.is-active { background: var(--plum-700); color: #fff; border-color: var(--plum-700); box-shadow: var(--shadow-sm); }
+.hv { position: relative; overflow: hidden; width: min(1240px, 100% - 28px); margin: 0 auto; border-radius: var(--r-xl); }
+.hv-inner { position: relative; z-index: 2; width: 100%; }
+.hv-eyebrow { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; letter-spacing: .02em; }
+.hv-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; }
+.hv-btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 11px; font-size: 14px; font-weight: 800; text-decoration: none; transition: transform .2s, box-shadow .2s, background .2s; }
+.hv-btn:hover { transform: translateY(-2px); }
+/* Arabic forward is leftward; ArrowLeft/ArrowUpLeft are used unmirrored. */
+.hv-btn-primary { background: var(--plum-700); color: #fff; box-shadow: 0 10px 24px rgba(124,29,79,.28); }
+.hv-btn-gold { background: linear-gradient(120deg, var(--gold-500), var(--gold-300)); color: #3d2a08; box-shadow: 0 10px 24px rgba(201,162,74,.3); }
+.hv-btn-ghost { background: transparent; color: inherit; border: 1.5px solid currentColor; opacity: .85; }
+
+/* --- 1. Editorial Luxe --- */
+.hv-editorial { background: linear-gradient(115deg, #fff8fb 0%, #fbe9f2 55%, #f6d9e8 100%); color: var(--ink-900); }
+.hv-e-glow { position: absolute; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(217,100,154,.22), transparent 70%); top: -160px; inset-inline-end: -80px; }
+.hv-e-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 20px; align-items: center; padding: 56px 48px; }
+.hv-e-eyebrow { color: var(--plum-600); }
+.hv-e-line { width: 26px; height: 2px; background: var(--plum-500); border-radius: 2px; }
+.hv-e-title { font-size: clamp(38px, 5.2vw, 66px); line-height: 1.08; font-weight: 900; margin: 16px 0 18px; letter-spacing: -.02em; }
+.hv-e-accent { color: var(--plum-600); position: relative; white-space: nowrap; }
+.hv-e-accent::after { content: ''; position: absolute; inset-inline: 0; bottom: 4px; height: 10px; background: rgba(230,207,148,.6); border-radius: 6px; z-index: -1; }
+.hv-e-sub { font-size: 16px; line-height: 1.9; color: var(--ink-700); max-width: 460px; }
+.hv-e-trust { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 30px; font-size: 12.5px; font-weight: 700; color: var(--ink-700); }
+.hv-e-trust span { display: inline-flex; align-items: center; gap: 6px; }
+.hv-e-trust svg { color: var(--plum-600); }
+.hv-e-visual { position: relative; min-height: 380px; display: grid; place-items: center; }
+.hv-e-circle { position: absolute; width: 340px; height: 340px; border-radius: 50%; background: linear-gradient(140deg, var(--rose-200), var(--rose-100)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.6); }
+.hv-e-card { position: relative; width: 240px; height: 320px; border-radius: 24px; overflow: hidden; background: #fff; box-shadow: 0 30px 60px rgba(95,18,56,.22); transform: rotate(-4deg); display: grid; place-items: center; }
+.hv-e-card img { width: 100%; height: 100%; object-fit: cover; }
+.hv-e-float { position: absolute; inset-inline-start: 4px; bottom: 46px; display: flex; align-items: center; gap: 9px; background: rgba(255,255,255,.92); backdrop-filter: blur(8px); padding: 10px 14px; border-radius: 14px; box-shadow: var(--shadow-sm); }
+.hv-e-float-icon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--rose-100); color: var(--plum-600); }
+.hv-e-float strong, .hv-e-float small { display: block; }
+.hv-e-float strong { font-size: 12px; }
+.hv-e-float small { font-size: 10px; color: var(--ink-500); }
+.hv-e-price { position: absolute; inset-inline-end: 6px; top: 46px; background: var(--plum-700); color: #fff; padding: 10px 16px; border-radius: 14px; box-shadow: 0 12px 24px rgba(124,29,79,.3); }
+.hv-e-price small, .hv-e-price strong { display: block; }
+.hv-e-price small { font-size: 10px; opacity: .8; }
+.hv-e-price strong { font-size: 20px; }
+
+/* --- 2. Cinematic Glass --- */
+.hv-cinematic { background: radial-gradient(circle at 75% 20%, #7c1d4f, #4a0f2b 60%, #2c0819 100%); color: #fff; min-height: 440px; display: flex; align-items: center; }
+.hv-c-orb { position: absolute; border-radius: 50%; filter: blur(2px); }
+.hv-c-orb-a { width: 360px; height: 360px; background: radial-gradient(circle, rgba(230,207,148,.22), transparent 70%); top: -120px; inset-inline-start: -80px; }
+.hv-c-orb-b { width: 300px; height: 300px; background: radial-gradient(circle, rgba(217,100,154,.3), transparent 70%); bottom: -120px; inset-inline-end: -60px; }
+.hv-c-bg { position: absolute; inset-inline-end: -40px; top: 0; height: 100%; width: 46%; object-fit: cover; opacity: .28; mask-image: linear-gradient(to left, #000, transparent); }
+.hv-c-grid { padding: 56px 48px; }
+.hv-c-glass { max-width: 620px; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(18px); border-radius: 24px; padding: 38px 40px; box-shadow: 0 24px 60px rgba(0,0,0,.25); }
+.hv-c-eyebrow { color: var(--gold-300); }
+.hv-c-title { font-size: clamp(34px, 4.6vw, 58px); line-height: 1.12; font-weight: 900; margin: 14px 0 16px; }
+.hv-c-accent { color: var(--gold-300); }
+.hv-c-sub { font-size: 15px; line-height: 1.9; opacity: .88; max-width: 500px; }
+.hv-c-stats { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 30px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.16); }
+.hv-c-stats div { display: flex; flex-direction: column; }
+.hv-c-stats strong { font-size: 24px; }
+.hv-c-stats span { font-size: 11px; opacity: .75; }
+
+/* --- 3. Bold Minimal --- */
+.hv-minimal { background: var(--surface); color: var(--ink-900); border: 1px solid var(--line); padding-bottom: 42px; }
+.hv-m-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 20px; align-items: center; padding: 56px 48px 40px; }
+.hv-m-eyebrow { color: var(--plum-600); font-variant-numeric: tabular-nums; }
+.hv-m-title { font-size: clamp(36px, 4.8vw, 60px); line-height: 1.14; font-weight: 900; margin: 16px 0 18px; letter-spacing: -.025em; }
+.hv-m-title span { color: var(--plum-600); }
+.hv-m-sub { font-size: 16px; line-height: 1.9; color: var(--ink-700); max-width: 440px; }
+.hv-m-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 34px; padding-top: 22px; border-top: 2px solid var(--ink-900); }
+.hv-m-features div { display: flex; flex-direction: column; gap: 3px; }
+.hv-m-features span { font-size: 11px; font-weight: 800; color: var(--plum-500); }
+.hv-m-features strong { font-size: 14px; }
+.hv-m-features small { font-size: 11px; color: var(--ink-500); }
+.hv-m-visual { position: relative; min-height: 360px; display: grid; place-items: center; }
+.hv-m-block { position: absolute; width: 300px; height: 300px; background: var(--rose-100); border-radius: 4px; transform: rotate(6deg); }
+.hv-m-disc { position: absolute; width: 220px; height: 220px; border-radius: 50%; border: 2px dashed var(--plum-300); }
+.hv-m-visual img { position: relative; width: 260px; height: 320px; object-fit: cover; filter: drop-shadow(0 20px 30px rgba(74,15,43,.2)); }
+.hv-m-tag { position: absolute; inset-inline-end: 20px; top: 30px; background: var(--ink-900); color: #fff; font-size: 11px; font-weight: 800; padding: 6px 12px; border-radius: 99px; }
+.hv-m-ticker { overflow: hidden; border-top: 1px solid var(--line); padding-top: 16px; white-space: nowrap; }
+.hv-m-track { display: inline-flex; gap: 30px; animation: hv-marquee 28s linear infinite; font-size: 12px; font-weight: 800; color: var(--plum-600); }
+.hv-m-track b { color: var(--gold-500); }
+@keyframes hv-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* --- Responsive --- */
+@media (max-width: 960px) {
+  .hv-e-grid, .hv-c-grid, .hv-m-grid { grid-template-columns: 1fr !important; padding: 34px 28px; }
+  .hv-e-visual, .hv-m-visual { min-height: 300px; }
+  .hv-c-bg { width: 70%; opacity: .18; }
+  .hv-e-title, .hv-c-title, .hv-m-title { font-size: clamp(32px, 7vw, 46px); }
+}
+@media (max-width: 560px) {
+  .hv-showcase { padding-top: 14px; }
+  .hv-switch { padding: 9px 11px; }
+  .hv-switch-label { font-size: 11px; }
+  .hv-switch-btns button { padding: 6px 11px; font-size: 11px; }
+  .hv-e-grid, .hv-c-grid, .hv-m-grid { padding: 26px 20px; gap: 8px; }
+  .hv-e-title, .hv-c-title, .hv-m-title { font-size: clamp(28px, 8vw, 36px); margin: 12px 0; }
+  .hv-e-sub, .hv-c-sub, .hv-m-sub { font-size: 13.5px; line-height: 1.8; }
+  .hv-e-trust { gap: 12px; font-size: 11px; margin-top: 20px; }
+  .hv-actions { margin-top: 20px; }
+  .hv-btn { padding: 11px 16px; font-size: 13px; }
+  .hv-e-visual { min-height: 250px; }
+  .hv-e-circle { width: 240px; height: 240px; }
+  .hv-e-card { width: 180px; height: 240px; }
+  .hv-e-float { bottom: 20px; }
+  .hv-e-price { top: 20px; }
+  .hv-c-glass { padding: 24px 22px; }
+  .hv-c-stats { gap: 18px; }
+  .hv-c-stats strong { font-size: 20px; }
+  .hv-m-features { gap: 8px; }
+  .hv-m-features strong { font-size: 12px; }
+  .hv-m-features small { font-size: 10px; }
+  .hv-m-visual { min-height: 250px; }
+  .hv-m-visual img { width: 200px; height: 250px; }
+  .hv-m-block { width: 230px; height: 230px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hv-m-track { animation: none; }
+  .hv-btn:hover { transform: none; }
+}

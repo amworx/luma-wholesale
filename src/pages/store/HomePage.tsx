@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Truck, ShieldCheck, RotateCcw, Star } from 'lucide-react';
+import { ArrowLeft, Sparkles, Truck, ShieldCheck, RotateCcw } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useData, formatMoney } from '@/data/store';
 import { ProductCard } from '@/components/store/ProductCard';
-import { ElasticGallery } from '@/components/store/ElasticGallery';
+import { HeroShowcase } from '@/components/store/HeroVariants';
 
 export function HomePage() {
   const data = useData();
@@ -14,36 +14,8 @@ export function HomePage() {
 
   return (
     <div>
-      {/* Hero: copy + elastic product gallery */}
-      <div className="container" style={{ paddingTop: 28 }}>
-        <div className="hero hero-elastic">
-          <div className="container hero-inner" style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 30, alignItems: 'center', position: 'relative', zIndex: 2 }}>
-            <div style={{ padding: '40px 0' }}>
-              <span className="badge" style={{ background: 'rgba(255,255,255,.16)', color: '#fff', marginBottom: 18 }}>
-                <Sparkles size={14} /> متجر الجملة الأول لمستحضرات التجميل
-              </span>
-              <h1 style={{ fontSize: 'clamp(34px, 5vw, 56px)', lineHeight: 1.2, marginBottom: 16 }}>
-                مستحضرات تجميل،<br /><span style={{ color: 'var(--gold-300)' }}>بأسعار الجملة</span>
-              </h1>
-              <p style={{ fontSize: 16, opacity: .9, maxWidth: 440, marginBottom: 26, lineHeight: 1.9 }}>
-                تصفّح تشكيلة واسعة من مستحضرات التجميل والعناية بالبشرة بأسعار الجملة، واختر الكميات التي تناسب متجرك أو مركزك.
-              </p>
-              <div className="row wrap" style={{ gap: 12 }}>
-                <Link to="/store/categories" className="btn btn-gold btn-lg">تصفّح المنتجات <ArrowLeft size={18} /></Link>
-                <Link to="/store/offers" className="btn btn-lg" style={{ background: 'rgba(255,255,255,.14)', color: '#fff', border: '1px solid rgba(255,255,255,.3)' }}>العروض</Link>
-              </div>
-              <div className="row" style={{ gap: 22, marginTop: 30, flexWrap: 'wrap', opacity: .85, fontSize: 12 }}>
-                <span className="row" style={{ gap: 6 }}><Star size={15} fill="var(--gold-300)" color="var(--gold-300)" /> تقييم 4.8/5</span>
-                <span className="row" style={{ gap: 6 }}><Truck size={15} /> شحن لكل المحافظات</span>
-                <span className="row" style={{ gap: 6 }}><ShieldCheck size={15} /> منتجات أصلية</span>
-              </div>
-            </div>
-            <div className="hero-art">
-              <ElasticGallery />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Hero: three selectable modern concepts */}
+      <HeroShowcase />
 
       {/* Trust strip */}
       <div className="container" style={{ marginTop: 22 }}>
