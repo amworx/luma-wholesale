@@ -1206,3 +1206,91 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .bulk-cat { padding: 12px; }
   .bulk-product-top { padding: 10px; }
 }
+
+/* ---- Bulk order validation issues ---- */
+.bulk-issues { border: 1px solid rgba(192,57,43,.3); background: var(--danger-bg); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
+.bulk-issues-head { display: flex; align-items: center; gap: 7px; color: var(--danger); font-weight: 800; font-size: 12px; margin-bottom: 8px; }
+.bulk-issues-list { display: grid; gap: 8px; }
+.bulk-issue { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--surface); border-radius: 9px; padding: 8px 10px; flex-wrap: wrap; }
+.bulk-issue-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.bulk-issue-text strong { font-size: 12px; }
+.bulk-issue-text .text-danger { font-size: 11px; }
+.bulk-issue .btn { flex: none; }
+
+/* ---- Cart line: mobile-safe layout ---- */
+.cart-line { align-items: flex-start; }
+.cart-line-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cart-line-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.cart-line-name { font-weight: 800; font-size: 14px; line-height: 1.5; color: var(--ink-900); }
+.cart-line-sku { font-size: 12px; line-height: 1.6; }
+.cart-line-prices { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 2px; }
+.cart-line-invalid { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; color: var(--danger); font-size: 11px; margin-top: 4px; }
+.cart-line-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
+.cart-line-total { font-size: 15px; color: var(--plum-700); }
+.cart-invalid-summary { display: flex; align-items: center; gap: 7px; padding: 9px 11px; border-radius: 10px; background: var(--danger-bg); color: var(--danger); font-size: 11.5px; line-height: 1.6; margin-bottom: 12px; }
+@media (max-width: 768px) {
+  .cart-line { gap: 12px; padding: 14px; }
+  .cart-line img { width: 56px; height: 56px; }
+  .cart-line-name { font-size: 13px; }
+}
+
+/* ---- Elastic gallery hero ---- */
+.hero-elastic { min-height: 440px; }
+.hero-elastic .hero-inner { width: 100%; }
+.elastic-gallery { display: flex; gap: 8px; height: 360px; width: 100%; direction: rtl; }
+.elastic-card { position: relative; flex: 1 1 0; min-width: 0; border-radius: 18px; overflow: hidden; transition: flex .55s cubic-bezier(.22,1,.36,1); background: var(--plum-800); }
+.elastic-card.is-active { flex: 3.4 1 0; }
+.elastic-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.22,1,.36,1); }
+.elastic-card.is-active img { transform: scale(1.04); }
+.elastic-shade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(36,10,26,.92) 0%, rgba(36,10,26,.45) 42%, rgba(36,10,26,0) 78%); opacity: .35; transition: opacity .4s; }
+.elastic-card.is-active .elastic-shade { opacity: 1; }
+.elastic-pick { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: none; cursor: pointer; z-index: 1; }
+.elastic-content { position: absolute; inset-inline: 0; bottom: 0; padding: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; z-index: 2; opacity: 0; transform: translateY(12px); transition: opacity .35s ease .1s, transform .35s ease .1s; pointer-events: none; }
+.elastic-card.is-active .elastic-content { opacity: 1; transform: none; pointer-events: auto; }
+.elastic-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; padding: 4px 9px; border-radius: 99px; background: rgba(255,255,255,.18); color: #fff; backdrop-filter: blur(4px); }
+.elastic-title { font-size: 20px; line-height: 1.3; color: #fff; }
+.elastic-cta { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 800; color: #3d2a08; background: var(--gold-300); padding: 8px 12px; border-radius: 9px; text-decoration: none; margin-top: 3px; }
+.elastic-cta svg { transform: scaleX(-1); }
+@media (max-width: 900px) {
+  .hero-elastic .hero-inner { grid-template-columns: 1fr !important; gap: 16px !important; }
+  .hero-elastic .hero-inner > div:first-child { padding: 26px 0 0 !important; }
+  .elastic-gallery { height: 240px; }
+  .elastic-title { font-size: 16px; }
+}
+@media (max-width: 560px) {
+  .elastic-gallery { height: 190px; gap: 5px; }
+  .elastic-card { border-radius: 13px; }
+  .elastic-content { padding: 10px; gap: 4px; }
+  .elastic-title { font-size: 13px; }
+  .elastic-chip { font-size: 9px; padding: 3px 7px; }
+  .elastic-cta { font-size: 10px; padding: 6px 9px; }
+}
+
+/* ---- Reports and tables: readable on every screen ---- */
+.table-wrap { max-width: 100%; }
+.tbl { table-layout: auto; }
+.tbl th, .tbl td { overflow-wrap: anywhere; word-break: normal; }
+/* On phones, dense data tables scroll inside their own container instead of
+   squeezing each cell into a few letters per line. */
+@media (max-width: 700px) {
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-wrap > .tbl { min-width: 640px; }
+  .order-report { padding: 12px !important; }
+  .order-report table.tbl { min-width: 0 !important; table-layout: fixed !important; }
+  .order-report table.tbl th, .order-report table.tbl td { font-size: 10.5px !important; padding: 7px 5px !important; overflow-wrap: anywhere !important; word-break: break-word !important; white-space: normal !important; }
+  .order-report table.tbl th:nth-child(4), .order-report table.tbl td:nth-child(4),
+  .order-report table.tbl th:nth-child(5), .order-report table.tbl td:nth-child(5) { white-space: normal !important; }
+  .report-grid { grid-template-columns: 1fr !important; gap: 5px !important; font-size: 11.5px !important; }
+  .report-grid > div { overflow-wrap: anywhere; }
+}
+
+/* Mobile hero: keep the elastic gallery above the fold. Tighten the copy
+   block rather than shrinking the gallery to a sliver. */
+@media (max-width: 900px) {
+  .hero-elastic .hero-inner > div:first-child { padding: 14px 0 0 !important; }
+  .hero-elastic h1 { font-size: clamp(24px, 7vw, 32px) !important; line-height: 1.2 !important; margin-bottom: 8px !important; }
+  .hero-elastic p { font-size: 12.5px !important; line-height: 1.6 !important; margin-bottom: 14px !important; }
+  .hero-elastic .btn-lg { padding: 10px 14px !important; font-size: 13px !important; }
+  .hero-elastic .row[style*="gap: 22px"] { margin-top: 14px !important; gap: 10px !important; font-size: 10.5px !important; }
+  .hero-elastic .badge { margin-bottom: 10px !important; }
+}

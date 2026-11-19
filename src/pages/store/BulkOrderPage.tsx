@@ -4,7 +4,7 @@ import * as Icons from 'lucide-react';
 import {
   Search, ShoppingCart, Package, RotateCcw, Tag, ArrowLeft, CheckCircle2, Layers,
   Flame, TrendingUp, Star, Sparkles, Clock, ChevronLeft, ChevronDown, X, Home,
-  Grid2X2, Plus, Minus, Users,
+  Grid2X2, Plus, Minus, Users, AlertCircle,
 } from 'lucide-react';
 import { useData, formatMoney, topCategories, childCategoriesOf } from '@/data/store';
 import { resolveUnitPrice, checkQuantity, isWholesaleEligible } from '@/data/pricing';
@@ -120,11 +120,15 @@ export function BulkOrderPage() {
     return { units: acc.units + row.qty, amount: acc.amount + price * row.qty };
   }, { units: 0, amount: 0 });
 
-  const invalidCount = selected.filter((r) => {
+  // Detailed, actionable validation: name each variant and say exactly why its
+  // quantity is wrong, with the concrete value that would fix it.
+  const invalid = selected.flatMap((r) => {
     const p = data.products.find((x) => x.id === r.productId)!;
     const v = p.variants.find((x) => x.id === r.variantId)!;
-    return !checkQuantity(v, r.qty).valid;
-  }).length;
+    const qc = checkQuantity(v, r.qty);
+    return qc.valid ? [] : [{ ...r, product: p, variant: v, reason: qc.messageAr, fix: qc.adjusted }];
+  });
+  const invalidCount = invalid.length;
 
   const addToCart = () => {
     if (!selected.length) { toast.show('أدخل كمية لمنتج واحد على الأقل', 'error'); return; }
@@ -261,7 +265,22 @@ export function BulkOrderPage() {
               <div style={{ borderTop: '1px dashed var(--line)', margin: '14px 0' }} />
               <div className="row-between" style={{ marginBottom: 6 }}><span className="muted">إجمالي الوحدات</span><strong>{totals.units}</strong></div>
               <div className="row-between" style={{ marginBottom: 16 }}><span className="muted">القيمة التقديرية</span><strong style={{ fontSize: 20, color: 'var(--plum-700)' }}>{formatMoney(totals.amount)}</strong></div>
-              {invalidCount > 0 && <div className="badge badge-danger" style={{ marginBottom: 10, width: '100%', justifyContent: 'center' }}>{invalidCount} كمية تحتاج ضبط</div>}
+              {invalidCount > 0 && (
+                <div className="bulk-issues">
+                  <div className="bulk-issues-head"><AlertCircle size={16} /> يرجى ضبط {invalidCount} {invalidCount === 1 ? 'كمية' : 'كميات'} قبل الإضافة للسلة</div>
+                  <div className="bulk-issues-list">
+                    {invalid.map((it) => (
+                      <div key={it.variantId} className="bulk-issue">
+                        <div className="bulk-issue-text">
+                          <strong>{it.product.nameAr} <span className="muted">· {it.variant.nameAr}</span></strong>
+                          <span className="text-danger">{it.reason} — أدخلت {it.qty}</span>
+                        </div>
+                        <button className="btn btn-outline btn-sm" onClick={() => setQty(it.variantId, it.fix)}>اضبط إلى {it.fix}</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <button className="btn btn-primary btn-lg btn-block" onClick={addToCart}><CheckCircle2 size={17} /> أضف للسلة</button>
               <Link to="/store/cart" className="btn btn-outline btn-block" style={{ marginTop: 8 }}>عرض السلة <ArrowLeft size={15} /></Link>
             </>

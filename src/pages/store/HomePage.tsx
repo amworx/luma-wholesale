@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Truck, ShieldCheck, RotateCcw, Star } from 'lucide-react';
 import * as Icons from 'lucide-react';
-import { useData, assetUrl, formatMoney } from '@/data/store';
+import { useData, formatMoney } from '@/data/store';
 import { ProductCard } from '@/components/store/ProductCard';
+import { ElasticGallery } from '@/components/store/ElasticGallery';
 
 export function HomePage() {
   const data = useData();
@@ -13,10 +14,10 @@ export function HomePage() {
 
   return (
     <div>
-      {/* Hero */}
+      {/* Hero: copy + elastic product gallery */}
       <div className="container" style={{ paddingTop: 28 }}>
-        <div className="hero">
-          <div className="container hero-inner" style={{ display: 'grid', gridTemplateColumns: '1.1fr .9fr', gap: 30, alignItems: 'center', position: 'relative', zIndex: 2 }}>
+        <div className="hero hero-elastic">
+          <div className="container hero-inner" style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 30, alignItems: 'center', position: 'relative', zIndex: 2 }}>
             <div style={{ padding: '40px 0' }}>
               <span className="badge" style={{ background: 'rgba(255,255,255,.16)', color: '#fff', marginBottom: 18 }}>
                 <Sparkles size={14} /> متجر الجملة الأول لمستحضرات التجميل
@@ -38,7 +39,7 @@ export function HomePage() {
               </div>
             </div>
             <div className="hero-art">
-              <img src={assetUrl('images/lipstick-velvet.svg')} alt="أحمر شفاه لُما" />
+              <ElasticGallery />
             </div>
           </div>
         </div>
