@@ -129,11 +129,12 @@ export function MegaMenu() {
                 {c.nameAr}
                 {hasKids && <ChevronDown size={13} className="mm-chev" />}
               </Link>
-              {active === c.id && panelFor(c.id)}
             </div>
           );
         })}
         <Link to="/store/offers" className="mm-trigger mm-offer"><Sparkles size={13} /> العروض</Link>
+        {/* Single panel anchored to the bar so it never clips off-screen in RTL. */}
+        {active && panelFor(active)}
       </nav>
 
       {/* Mobile trigger */}

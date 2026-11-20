@@ -120,10 +120,26 @@ test('valid pack-aligned quantity passes', () => {
   assert.equal(r.adjusted, 24);
 });
 
-test('quantity above stock is clamped to stock', () => {
+test('quantity above stock is clamped to the largest pack-aligned amount within stock', () => {
   const r = checkQuantity({ ...variant, stock: 18 }, 24);
   assert.equal(r.valid, false);
-  assert.equal(r.adjusted, 18);
+  assert.equal(r.adjusted, 12); // largest multiple of pack 12 that fits in stock 18
+  assert.equal(checkQuantity({ ...variant, stock: 18 }, r.adjusted).valid, true);
+});
+
+test('stock fix is pack-aligned so the suggested quantity is actually valid', () => {
+  // pack 6, moq 6, stock 10: the old fix offered 10, which re-fails the pack rule.
+  const v = { ...variant, packSize: 6, moq: 6, stock: 10 };
+  const r = checkQuantity(v, 12);
+  assert.equal(r.valid, false);
+  assert.equal(r.adjusted, 6); // largest pack multiple (6) that fits in stock 10
+  assert.equal(checkQuantity(v, r.adjusted).valid, true); // the offered fix passes
+});
+
+test('stock fix never drops below MOQ even when stock is under one pack', () => {
+  const v = { ...variant, packSize: 6, moq: 6, stock: 4 };
+  const r = checkQuantity(v, 10);
+  assert.equal(r.adjusted, 4); // cannot satisfy MOQ; offer all available stock
 });
 
 test('singles (pack 1, moq 1) accept any positive quantity', () => {

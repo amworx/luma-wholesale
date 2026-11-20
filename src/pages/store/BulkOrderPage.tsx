@@ -106,11 +106,14 @@ export function BulkOrderPage() {
   const nudge = (variantId: string, delta: number, pack: number) =>
     setRows((r) => ({ ...r, [variantId]: Math.max(0, (r[variantId] || 0) + delta * Math.max(1, pack)) }));
 
+  // Skip quantities whose variant was deleted on another device. Without this
+  // guard a stale `rows` entry makes the non-null assertion below throw and
+  // takes down the whole bulk page on the next realtime update.
   const selected: Row[] = Object.entries(rows)
     .filter(([, qty]) => qty > 0)
-    .map(([variantId, qty]) => {
-      const product = data.products.find((p) => p.variants.some((v) => v.id === variantId))!;
-      return { productId: product.id, variantId, qty };
+    .flatMap(([variantId, qty]) => {
+      const product = data.products.find((p) => p.variants.some((v) => v.id === variantId));
+      return product ? [{ productId: product.id, variantId, qty }] : [];
     });
 
   const totals = selected.reduce((acc, row) => {
@@ -369,6 +372,7 @@ function ProductShelf({ title, sub, products, ...rest }: GridProps & { title: st
 function ProductCard({ product, data, customer, rows, setQty, nudge, expanded, setExpanded }: Omit<GridProps, 'products'> & { product: Product }) {
   const isOpen = expanded === product.id;
   const [fillQty, setFillQty] = useState(0);
+  const [fillNotice, setFillNotice] = useState('');
   // Products with many variants switch to a dense, aligned row layout so a
   // 6-variant item doesn't push half a screen of stacked cards down the page.
   const compact = product.variants.length >= 4;
@@ -379,17 +383,20 @@ function ProductCard({ product, data, customer, rows, setQty, nudge, expanded, s
   const applyFill = () => {
     if (fillQty <= 0) {
       product.variants.forEach((v) => setQty(v.id, 0));
+      setFillNotice('');
       return;
     }
-    let adjusted = 0;
+    const short: string[] = [];
     product.variants.forEach((v) => {
       const c = checkQuantity(v, fillQty);
       const q = c.valid ? fillQty : c.adjusted;
-      if (q !== fillQty) adjusted++;
+      if (q < fillQty) short.push(`${v.nameAr} (${q})`);
       setQty(v.id, q);
     });
-    // Feedback is optional; the rows themselves show the applied quantities.
-    void adjusted;
+    // Make partial fills explicit so nobody submits a short order by mistake.
+    setFillNotice(short.length
+      ? `تنبيه: الكمية قُلّلت تلقائياً لخيارات محدودة المخزون: ${short.join('، ')}. راجع الكميات قبل إتمام الطلب.`
+      : `تم ضبط ${fillQty} لكل الخيارات.`);
   };
 
   return (
@@ -416,9 +423,10 @@ function ProductCard({ product, data, customer, rows, setQty, nudge, expanded, s
               <div className="bulk-fill-row">
                 <input className="input bulk-fill-input" type="number" min={0} value={fillQty || ''} placeholder="الكمية" onChange={(e) => setFillQty(Number(e.target.value))} aria-label="كمية لكل الخيارات" />
                 <button className="btn btn-primary btn-sm" onClick={applyFill}>تطبيق</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => { setFillQty(0); product.variants.forEach((v) => setQty(v.id, 0)); }}>مسح</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setFillQty(0); setFillNotice(''); product.variants.forEach((v) => setQty(v.id, 0)); }}>مسح</button>
               </div>
               <span className="bulk-fill-hint">تُضبط الكمية على حد أدنى/مضاعفات العبوة لكل خيار تلقائياً.</span>
+              {fillNotice && <span className={`bulk-fill-notice ${fillNotice.startsWith('تنبيه') ? 'is-warn' : ''}`}>{fillNotice}</span>}
             </div>
           )}
           {compact && (

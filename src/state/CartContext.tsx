@@ -37,11 +37,31 @@ const CartContext = createContext<CartApi>({
   lines: [], priced: [], count: 0, add: () => {}, setQty: () => {}, addMany: () => {}, remove: () => {}, clear: () => {}, subtotal: 0, hasInvalid: false,
 });
 
+/** Validate and de-duplicate persisted cart data so a corrupt or stale value
+ *  can never crash pricing (which calls .flatMap on this array). */
+function sanitizeCart(raw: unknown): CartLine[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: CartLine[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const l = item as Partial<CartLine>;
+    if (typeof l.productId !== 'string' || typeof l.variantId !== 'string') continue;
+    const qty = Number(l.quantity);
+    if (!Number.isFinite(qty) || qty <= 0) continue;
+    const key = `${l.productId}::${l.variantId}`;
+    if (seen.has(key)) continue; // duplicate lines would submit twice
+    seen.add(key);
+    out.push({ productId: l.productId, variantId: l.variantId, quantity: qty });
+  }
+  return out;
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const data = useData();
   const session = useSession();
   const [lines, setLines] = useState<CartLine[]>(() => {
-    try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]') as CartLine[]; } catch { return []; }
+    try { return sanitizeCart(JSON.parse(localStorage.getItem(CART_KEY) || '[]')); } catch { return []; }
   });
 
   useEffect(() => { localStorage.setItem(CART_KEY, JSON.stringify(lines)); }, [lines]);

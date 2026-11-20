@@ -1,7 +1,7 @@
 ﻿import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, User, Menu, X, Heart, MapPin, Phone, Instagram, Sparkles } from 'lucide-react';
-import { useData, useSession, useSaveStatus } from '@/data/store';
+import { useData, useSession, useSaveStatus, retrySave } from '@/data/store';
 import { useCart } from '@/state/CartContext';
 import { MegaMenu } from '@/components/store/MegaMenu';
 import { BottomDock } from '@/components/store/BottomDock';
@@ -26,10 +26,13 @@ export function StoreLayout() {
     <div className="store-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', paddingBottom: 72 }}>
       {/* Cloud save status: failures must never be silent */}
       {(saveStatus === 'offline' || saveStatus === 'conflict' || saveStatus === 'error') && (
-        <div style={{ background: 'var(--danger)', color: '#fff', textAlign: 'center', padding: '7px 16px', fontSize: 12, fontWeight: 700 }}>
-          {saveStatus === 'offline' && 'لا يوجد اتصال — التغييرات محفوظة على الجهاز وستُرسل عند عودة الاتصال'}
-          {saveStatus === 'conflict' && 'تعذّر مزامنة التغييرات بعد عدة محاولات — أعد تحميل الصفحة'}
-          {saveStatus === 'error' && 'تعذّر حفظ التغييرات — أعد المحاولة'}
+        <div style={{ background: 'var(--danger)', color: '#fff', textAlign: 'center', padding: '7px 16px', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span>
+            {saveStatus === 'offline' && 'لا يوجد اتصال — التغييرات محفوظة على الجهاز وستُرسل تلقائياً عند عودة الاتصال'}
+            {saveStatus === 'conflict' && 'تعذّر مزامنة التغييرات بعد عدة محاولات — التغييرات محفوظة على جهازك'}
+            {saveStatus === 'error' && 'تعذّر حفظ التغييرات — التغييرات محفوظة على جهازك'}
+          </span>
+          <button type="button" onClick={retrySave} style={{ background: '#fff', color: 'var(--danger)', border: 0, borderRadius: 8, padding: '3px 12px', fontWeight: 800, cursor: 'pointer' }}>إعادة المحاولة</button>
         </div>
       )}
 

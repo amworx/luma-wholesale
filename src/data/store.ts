@@ -136,6 +136,14 @@ export class CloudAdapter implements DataAdapter {
 
   setStatusListener(fn: (status: SaveStatus) => void) { this.onStatus = fn; }
 
+  /** Re-attempt a snapshot left queued by a failed/offline save. Safe to call
+   *  repeatedly (on reconnect, tab focus, or a manual "retry" action). */
+  retryPending(): void {
+    if (!this.pending) return;
+    const seq = ++this.pendingSeq;
+    this.saveQueue = this.saveQueue.then(() => this.flush(seq));
+  }
+
   /** Called by Store so incoming realtime rows update React state. */
   setRemoteListener(fn: (data: AppData) => void) {
     this.onRemoteChange = fn;
@@ -272,6 +280,7 @@ class Store {
         if (this.session) {
           const u = data.users.find((x) => x.id === this.session!.userId);
           if (!u || !u.active) this.setSession(null);
+          else this.syncSessionFromUser(u);
         }
         this.listeners.forEach((l) => l());
       });
@@ -279,6 +288,16 @@ class Store {
     const rawSession = localStorage.getItem(SESSION_KEY);
     if (rawSession) {
       try { this.session = JSON.parse(rawSession) as Session; } catch { /* ignore */ }
+    }
+    // A save that failed while offline stays queued. Flush it automatically
+    // when connectivity returns or the tab becomes visible again.
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        if (this.adapter instanceof CloudAdapter) this.adapter.retryPending();
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && this.adapter instanceof CloudAdapter) this.adapter.retryPending();
+      });
     }
     void this.init();
   }
@@ -289,6 +308,7 @@ class Store {
     if (this.session) {
       const u = this.data.users.find((x) => x.id === this.session!.userId);
       if (!u || !u.active) this.setSession(null);
+      else this.syncSessionFromUser(u);
     }
     this.ready = true;
     // Notify data subscribers too: providers mounted above the ready gate
@@ -309,6 +329,15 @@ class Store {
     this.data = next;
     void this.adapter.save(next);
     this.listeners.forEach((l) => l());
+  }
+
+  /** Keep the cached session's display fields aligned with the live user. */
+  private syncSessionFromUser(u: User) {
+    if (!this.session) return;
+    if (this.session.role === u.role && this.session.name === u.name) return;
+    this.session = { ...this.session, role: u.role, name: u.name };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(this.session));
+    this.sessionListeners.forEach((l) => l());
   }
 
   setSession(session: Session | null) {
@@ -436,12 +465,25 @@ const getSaveStatus = () => saveStatus;
 export function useSaveStatus(): SaveStatus {
   return useSyncExternalStore(subscribeSaveStatus, getSaveStatus, getSaveStatus);
 }
+/** Manually flush a queued/failed save (e.g. from the status banner). */
+export function retrySave(): void {
+  const adapter = store.getAdapter();
+  if (adapter instanceof CloudAdapter) adapter.retryPending();
+}
 
 export function useData(): AppData | null {
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 }
 export function useSession(): Session | null {
   return useSyncExternalStore(store.subscribeSession, store.getSessionSnapshot, store.getSessionSnapshot);
+}
+/** The live user record for the current session. Unlike the cached session,
+ *  this reflects role/status changes pushed from another device in realtime. */
+export function useCurrentUser(): User | null {
+  const data = useData();
+  const session = useSession();
+  if (!data || !session) return null;
+  return data.users.find((u) => u.id === session.userId) || null;
 }
 export function useReady(): boolean {
   return useSyncExternalStore(store.subscribeReady, store.getReady, store.getReady);

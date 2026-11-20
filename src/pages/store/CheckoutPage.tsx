@@ -52,21 +52,30 @@ export function CheckoutPage() {
     if (hasInvalid) {
       toast.show('يرجى ضبط الكميات غير الصالحة في السلة أولاً', 'error'); return;
     }
-    if (!address.fullName || !address.phone || !address.city || !address.street) {
-      toast.show('يرجى تعبئة الاسم ورقم الهاتف والمدينة والشارع', 'error'); return;
+    // Trim first so whitespace-only fields can't pass as a real address, and
+    // require a plausible Syrian phone number (digits only, 9-15 long).
+    const name = address.fullName.trim();
+    const phone = address.phone.trim();
+    const city = address.city.trim();
+    const street = address.street.trim();
+    const digits = phone.replace(/[\s\-()]/g, '');
+    if (!name || !city || !street || !/^\d{9,15}$/.test(digits)) {
+      toast.show('يرجى تعبئة الاسم والمدينة والشارع ورقم هاتف صحيح (أرقام فقط)', 'error'); return;
     }
+    const cleanAddress = { ...address, fullName: name, phone, city, street };
+    setAddress(cleanAddress);
     const orderNumber = `LM-${1000 + data.orders.length + 1}`;
     const order: Order = {
       id: `o-${Date.now()}`, orderNumber,
       customerId: session?.userId || null,
-      customerName: address.fullName, customerPhone: address.phone,
+      customerName: name, customerPhone: phone,
       lines: details.map(({ line, p, v, price }) => ({
         productId: p.id, variantId: v.id, productNameAr: p.nameAr, variantNameAr: v.nameAr,
         image: p.images[0], unitPrice: price, quantity: line.quantity, lineTotal: price * line.quantity,
         sku: v.sku, priceTier: line.tierLabel, currency: data.settings.currency,
       })),
       subtotal, shippingFee: shipping, discount: 0, total,
-      status: 'new', paymentMethod: 'pending', address,
+      status: 'new', paymentMethod: 'pending', address: cleanAddress,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), notes: address.notes,
       handledBy: '', handlingNotes: '', quotedTotal: null, handledAt: '',
     };

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, Search, X } from 'lucide-react';
 import { useData, productMinPrice, formatMoney, categoryProductScope } from '@/data/store';
 import { ProductCard } from '@/components/store/ProductCard';
@@ -62,11 +62,12 @@ export function ListingPage({ variant }: { variant: 'all' | 'category' | 'search
       );
     }
 
-    // Subcategory chips: use direct assignments when present, otherwise fall back
-    // to the parent category's products (seed products use parent ids).
+    // Subcategory chips: use direct assignments when present, otherwise fall
+    // back to the whole subcategory subtree (seed products sit on a parent
+    // id, and deep chains can have no products on the deepest node at all).
     if (variant === 'category' && activeSubId) {
-      const direct = list.filter((p) => p.categoryId === activeSubId);
-      list = direct.length ? direct : list.filter((p) => p.categoryId === categoryId);
+      const direct = new Set(categoryProductScope(data, activeSubId));
+      list = list.filter((p) => direct.has(p.categoryId));
     }
 
     list = list.filter((p) => productMinPrice(p) / 100 <= maxPrice);
@@ -105,6 +106,9 @@ export function ListingPage({ variant }: { variant: 'all' | 'category' | 'search
   const visibleBrands = showAllBrands ? brands : brands.slice(0, 8);
   const activeFilterCount = (maxPrice < 1000 ? 1 : 0) + (onlyAvailable ? 1 : 0) + selectedBrands.length + (activeSubId ? 1 : 0);
 
+  // An empty search should prompt the buyer, not silently list the whole
+  // catalogue under "نتائج البحث عن «»".
+  const emptySearch = variant === 'search' && !query;
   const title = variant === 'category' ? (category?.nameAr || 'المنتجات')
     : variant === 'search' ? `نتائج البحث عن «${query}»`
     : variant === 'offers' ? 'العروض والخصومات' : 'كل المنتجات';
@@ -216,12 +220,20 @@ export function ListingPage({ variant }: { variant: 'all' | 'category' | 'search
     <div className="container" style={{ paddingTop: 32 }}>
       <div style={{ marginBottom: 24 }}>
         <span className="eyebrow">{variant === 'offers' ? 'أسعار أقل' : 'متجر لُما'}</span>
-        <h1 className="section-title">{title}</h1>
+        <h1 className="section-title">{emptySearch ? 'ابحث في المتجر' : title}</h1>
         {variant === 'category' && category && <p className="muted" style={{ marginTop: 6 }}>{category.descriptionAr}</p>}
-        <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>{products.length} منتج</p>
+        {!emptySearch && <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>{products.length} منتج</p>}
       </div>
 
-      <div className="listing-layout">
+      {emptySearch && (
+        <EmptyState
+          title="اكتب كلمة للبحث"
+          description="ابحث باسم المنتج أو الماركة أو رقم الصنف (SKU)."
+          action={<Link to="/store" className="btn btn-primary">تصفّح كل المنتجات</Link>}
+        />
+      )}
+
+      {!emptySearch && <div className="listing-layout">
         <aside className="lf-desktop">{filterPanel}</aside>
 
         <div className="lf-content">
@@ -260,6 +272,7 @@ export function ListingPage({ variant }: { variant: 'all' | 'category' | 'search
           )}
         </div>
       </div>
+      }
 
       {sheetOpen && (
         <div className="lf-overlay" onClick={() => setSheetOpen(false)}>

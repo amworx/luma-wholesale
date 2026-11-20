@@ -150,12 +150,23 @@ export function checkQuantity(variant: ProductVariant, requested: number): Quant
   const stock = Math.max(0, variant.stock || 0);
   const q = Math.max(0, Math.floor(requested));
 
+  // Not enough stock to ever meet MOQ: allow buying all remaining stock as an
+  // exception, otherwise the "fix" button would toggle forever.
+  if (stock > 0 && stock < moq) {
+    if (q === stock) return { valid: true, messageAr: '', adjusted: q };
+    return { valid: false, messageAr: `الكمية المتوفرة ${stock} وحدة فقط (أقل من الحد الأدنى ${moq})`, adjusted: stock };
+  }
+
+  // Largest quantity that satisfies both pack multiple and MOQ within stock.
+  const largestByPack = pack > 1 ? Math.floor(stock / pack) * pack : stock;
+  const cap = largestByPack >= moq ? largestByPack : Math.min(moq, stock);
+
   if (q === 0) return { valid: false, messageAr: 'أدخل كمية', adjusted: Math.min(moq, stock) || moq };
   if (q < moq) return { valid: false, messageAr: `الحد الأدنى للطلب ${moq} وحدة`, adjusted: Math.min(moq, stock) || moq };
   if (pack > 1 && q % pack !== 0) {
     const aligned = Math.max(moq, Math.ceil(q / pack) * pack);
-    return { valid: false, messageAr: `الكمية بمضاعفات ${pack} (عبوة)`, adjusted: Math.min(aligned, Math.max(pack, stock)) };
+    return { valid: false, messageAr: `الكمية بمضاعفات ${pack} (عبوة)`, adjusted: Math.min(aligned, cap) };
   }
-  if (q > stock) return { valid: false, messageAr: `الكمية المتوفرة ${stock} وحدة فقط`, adjusted: stock };
+  if (q > stock) return { valid: false, messageAr: `الكمية المتوفرة ${stock} وحدة فقط`, adjusted: cap };
   return { valid: true, messageAr: '', adjusted: q };
 }

@@ -94,6 +94,15 @@ export function ProductPage() {
       </div>
     );
   }
+  // A product with no variants cannot be priced or ordered. Show a graceful
+  // state instead of letting resolveUnitPrice()/activeVariant.stock throw.
+  if (!product.variants || product.variants.length === 0) {
+    return (
+      <div className="container" style={{ padding: 40 }}>
+        <EmptyState title="هذا المنتج غير متوفر حالياً" description="لا توجد خيارات متاحة لهذا المنتج. تصفّح منتجاتنا الأخرى." action={<Link to="/store" className="btn btn-primary">العودة للمتجر</Link>} />
+      </div>
+    );
+  }
 
   const activeVariant = product.variants.find((v) => v.id === variantId) || product.variants[0];
   const customer = session ? data.users.find((u) => u.id === session.userId) || null : null;

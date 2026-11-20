@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { useReady, useSession } from '@/data/store';
+import { useReady, useSession, useCurrentUser } from '@/data/store';
 import { StoreLayout } from '@/components/layout/StoreLayout';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { HomePage } from '@/pages/store/HomePage';
@@ -27,9 +27,13 @@ import { AdminSettings } from '@/pages/admin/AdminSettings';
 
 function Guard({ role, children }: { role: 'admin' | 'sales'; children: React.ReactNode }) {
   const session = useSession();
+  const user = useCurrentUser();
   if (!session) return <Navigate to="/login" replace />;
-  if (session.role !== role && session.role !== 'admin') return <Navigate to="/store" replace />;
-  // Admin can view sales pages too.
+  // Use the live user record so a role change on another device takes effect
+  // immediately, without waiting for logout/login. Admin can view sales pages.
+  const liveRole = user?.role ?? session.role;
+  if (!user?.active) return <Navigate to="/login" replace />;
+  if (liveRole !== role && liveRole !== 'admin') return <Navigate to="/store" replace />;
   return <>{children}</>;
 }
 
