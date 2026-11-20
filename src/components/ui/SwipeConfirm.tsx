@@ -2,14 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, Check, X, Loader2 } from 'lucide-react';
 
 /**
- * Slide-to-confirm, rebuilt RTL-first from the 21st.dev "swipe to confirm"
- * concept in the app's own CSS tokens (no Tailwind / external dependency).
+ * Slide-to-confirm, RTL-first, rebuilt from the 21st.dev concept in the app's
+ * own CSS (no Tailwind / external dependency).
  *
- * The knob starts at the inline-start (right in Arabic) and slides toward the
- * inline-end (left). Drag with mouse or touch, or use the keyboard
- * (ArrowLeft/ArrowRight to move, Enter/Space to confirm). Includes a trailing
- * fill, light haptics, a spinner while the action runs, an error shake on
- * failure and a success check on completion.
+ * Performance: during a drag the knob/fill/labels are painted directly on the
+ * DOM from the pointer event. React state is only touched on pointer-down and
+ * on release, so a fast swipe stays at the display's frame rate instead of
+ * re-rendering the whole dialog on every pointermove.
  */
 interface Props {
   onConfirm: () => void | Promise<void>;
@@ -21,7 +20,8 @@ interface Props {
 
 type Phase = 'idle' | 'dragging' | 'working' | 'success' | 'error';
 
-const THRESHOLD = 0.82; // fraction of the slide needed to commit
+const THRESHOLD = 0.82;
+const KNOB = 46;
 
 export function SwipeConfirm({
   onConfirm,
@@ -31,85 +31,96 @@ export function SwipeConfirm({
   disabled = false,
 }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0);
-  // Keep the live value in a ref too: React may not have flushed the last
-  // pointermove state update before pointerup reads it, which would drop a
-  // fast, deliberate swipe.
+  const knobRef = useRef<HTMLSpanElement>(null);
+  const fillRef = useRef<HTMLSpanElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const hintRef = useRef<HTMLSpanElement>(null);
+
   const progressRef = useRef(0);
   const [phase, setPhase] = useState<Phase>('idle');
   const phaseRef = useRef<Phase>('idle');
   const drag = useRef<{ startX: number; startProgress: number; width: number } | null>(null);
 
-  const updateProgress = (p: number) => { progressRef.current = p; setProgress(p); };
   const updatePhase = (p: Phase) => { phaseRef.current = p; setPhase(p); };
+  const maxOffset = () => Math.max(0, (trackRef.current?.clientWidth || 240) - KNOB - 8);
 
-  const knobSize = 46;
-  const maxOffset = () => Math.max(0, (trackRef.current?.clientWidth || 240) - knobSize - 8);
+  /** Paint the current progress straight to the DOM — no React render. */
+  const paint = useCallback((p: number) => {
+    progressRef.current = p;
+    const px = Math.max(0, Math.min(1, p)) * maxOffset();
+    if (knobRef.current) knobRef.current.style.insetInlineStart = `${px}px`;
+    if (fillRef.current) fillRef.current.style.width = `${px + KNOB}px`;
+    if (labelRef.current) labelRef.current.style.opacity = String(1 - Math.min(0.9, p * 1.1));
+    if (hintRef.current) hintRef.current.style.opacity = String(Math.min(0.85, p * 1.4));
+  }, []);
 
   const vibrate = (pattern: number | number[]) => {
-    try { (navigator.vibrate as ((p: number | number[]) => boolean) | undefined)?.(pattern); } catch { /* haptics are optional */ }
+    try { (navigator.vibrate as ((p: number | number[]) => boolean) | undefined)?.(pattern); } catch { /* optional */ }
   };
 
   const setFromClientX = useCallback((clientX: number) => {
-    if (!drag.current) return;
+    const d = drag.current;
+    if (!d) return;
     // RTL: moving the pointer left (smaller clientX) increases progress.
-    const delta = drag.current.startX - clientX;
-    const raw = drag.current.startProgress + delta / Math.max(1, drag.current.width);
-    // Rubber band past the ends for a springy feel.
-    const clamped = raw < 0 ? raw * 0.25 : raw > 1 ? 1 + (raw - 1) * 0.25 : raw;
-    updateProgress(Math.min(1.05, Math.max(-0.05, clamped)));
-  }, []);
+    const delta = d.startX - clientX;
+    const raw = d.startProgress + delta / Math.max(1, d.width);
+    const clamped = raw < 0 ? raw * 0.25 : raw > 1 ? 1 + (raw - 1) * 0.25 : raw; // rubber band
+    paint(Math.min(1.05, Math.max(-0.05, clamped)));
+  }, [paint]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (disabled || phaseRef.current === 'working' || phaseRef.current === 'success') return;
+    e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     drag.current = { startX: e.clientX, startProgress: progressRef.current, width: maxOffset() };
-    updatePhase('dragging');
+    updatePhase('dragging'); // one render: adds .is-dragging which disables transitions
   };
-  const onPointerMove = (e: React.PointerEvent) => { if (phaseRef.current === 'dragging') setFromClientX(e.clientX); };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (phaseRef.current === 'dragging') setFromClientX(e.clientX);
+  };
 
   const commit = useCallback(async () => {
-    updateProgress(1);
+    paint(1);
     updatePhase('working');
     vibrate(18);
     try {
       await onConfirm();
       updatePhase('success');
       vibrate([12, 40, 24]);
-      window.setTimeout(() => { updatePhase('idle'); updateProgress(0); }, 1100);
+      window.setTimeout(() => { paint(0); updatePhase('idle'); }, 1100);
     } catch {
       updatePhase('error');
       vibrate([40, 60, 40]);
-      window.setTimeout(() => { updatePhase('idle'); updateProgress(0); }, 600);
+      window.setTimeout(() => { paint(0); updatePhase('idle'); }, 600);
     }
-  }, [onConfirm]);
+  }, [onConfirm, paint]);
 
   const onPointerUp = () => {
     if (phaseRef.current !== 'dragging') return;
     drag.current = null;
     if (progressRef.current >= THRESHOLD) void commit();
-    else { updatePhase('idle'); updateProgress(0); }
+    else { paint(0); updatePhase('idle'); } // transitions re-enabled → springs back
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (disabled || phaseRef.current === 'working' || phaseRef.current === 'success') return;
-    if (e.key === 'ArrowLeft') { e.preventDefault(); updateProgress(Math.min(1, progressRef.current + 0.2)); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); updateProgress(Math.max(0, progressRef.current - 0.2)); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); paint(Math.min(1, progressRef.current + 0.2)); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); paint(Math.max(0, progressRef.current - 0.2)); }
     else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void commit(); }
   };
 
-  // Reset if the action was dismissed while mid-drag.
   useEffect(() => {
-    if (disabled) { updateProgress(0); updatePhase('idle'); }
-  }, [disabled]);
+    if (disabled) { paint(0); updatePhase('idle'); }
+  }, [disabled, paint]);
 
-  const offset = Math.max(0, Math.min(1, progress)) * maxOffset();
   const state = phase === 'working' || phase === 'success' || phase === 'error' ? phase : 'idle';
+  // Initial inline styles only; subsequent drag updates are painted directly.
+  const initialOffset = 0;
 
   return (
     <div
       ref={trackRef}
-      className={`swipe-track tone-${tone} is-${state} ${disabled ? 'is-disabled' : ''}`}
+      className={`swipe-track tone-${tone} is-${state} ${phase === 'dragging' ? 'is-dragging' : ''} ${disabled ? 'is-disabled' : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -120,12 +131,12 @@ export function SwipeConfirm({
       aria-disabled={disabled}
       onKeyDown={onKeyDown}
     >
-      <span className="swipe-fill" style={{ width: offset + knobSize }} />
-      <span className="swipe-label" style={{ opacity: 1 - Math.min(0.9, progress * 1.1) }}>
+      <span ref={fillRef} className="swipe-fill" style={{ width: initialOffset + KNOB }} />
+      <span ref={labelRef} className="swipe-label">
         {phase === 'success' ? successLabel : phase === 'working' ? 'جارٍ التنفيذ...' : label}
       </span>
-      <span className="swipe-hint" style={{ opacity: Math.min(0.85, progress * 1.4) }}>أكمل السحب</span>
-      <span className="swipe-knob" style={{ insetInlineStart: offset }}>
+      <span ref={hintRef} className="swipe-hint">أكمل السحب</span>
+      <span ref={knobRef} className="swipe-knob" style={{ insetInlineStart: initialOffset }}>
         {phase === 'working' ? <Loader2 size={20} className="spin" />
           : phase === 'success' ? <Check size={22} strokeWidth={3} />
           : phase === 'error' ? <X size={20} strokeWidth={3} />

@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, CheckCircle2, FileText, Printer, PackageCheck, FileDown } from 'lucide-react';
+import { MapPin, CheckCircle2, FileText, Printer, PackageCheck, FileDown, Clock } from 'lucide-react';
 import { useData, useSession, store, formatMoney } from '@/data/store';
 import { useCart } from '@/state/CartContext';
 import { useToast } from '@/components/ui/Toast';
 import { LocationPicker, type PickedLocation } from '@/components/store/LocationPicker';
 import type { Order, ShippingAddress } from '@/types';
-import { exportReportPdf } from '@/data/exportPdf';
+import { exportReportPdf, printReport } from '@/data/exportPdf';
+import { ConfirmActionModal } from '@/components/ui/ConfirmActionModal';
+import { ShareButton } from '@/components/ui/ShareButton';
 
 const emptyAddress: ShippingAddress = {
   fullName: '', phone: '', city: '', area: '', street: '', notes: '',
@@ -21,6 +23,8 @@ export function CheckoutPage() {
   const toast = useToast();
   const [address, setAddress] = useState<ShippingAddress>({ ...emptyAddress, fullName: session?.name || '' });
   const [placed, setPlaced] = useState<Order | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAddress, setPendingAddress] = useState<ShippingAddress | null>(null);
   const set = (k: keyof ShippingAddress, v: string) => setAddress((a) => ({ ...a, [k]: v }));
 
   // The map is optional: only pass a value once both coordinates exist.
@@ -47,7 +51,8 @@ export function CheckoutPage() {
   const shipping = subtotal >= data.settings.freeShippingOver ? 0 : data.settings.defaultShippingFee;
   const total = subtotal + shipping;
 
-  const placeOrder = (e: React.FormEvent) => {
+  // First step: validate and ask for an explicit, deliberate confirmation.
+  const requestSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (hasInvalid) {
       toast.show('يرجى ضبط الكميات غير الصالحة في السلة أولاً', 'error'); return;
@@ -62,13 +67,20 @@ export function CheckoutPage() {
     if (!name || !city || !street || !/^\d{9,15}$/.test(digits)) {
       toast.show('يرجى تعبئة الاسم والمدينة والشارع ورقم هاتف صحيح (أرقام فقط)', 'error'); return;
     }
-    const cleanAddress = { ...address, fullName: name, phone, city, street };
+    setPendingAddress({ ...address, fullName: name, phone, city, street });
+    setConfirmOpen(true);
+  };
+
+  // Second step: only runs after the customer completes the swipe.
+  const placeOrder = () => {
+    const cleanAddress = pendingAddress;
+    if (!cleanAddress) return;
     setAddress(cleanAddress);
     const orderNumber = `LM-${1000 + data.orders.length + 1}`;
     const order: Order = {
       id: `o-${Date.now()}`, orderNumber,
       customerId: session?.userId || null,
-      customerName: name, customerPhone: phone,
+      customerName: cleanAddress.fullName, customerPhone: cleanAddress.phone,
       lines: details.map(({ line, p, v, price }) => ({
         productId: p.id, variantId: v.id, productNameAr: p.nameAr, variantNameAr: v.nameAr,
         image: p.images[0], unitPrice: price, quantity: line.quantity, lineTotal: price * line.quantity,
@@ -76,7 +88,7 @@ export function CheckoutPage() {
       })),
       subtotal, shippingFee: shipping, discount: 0, total,
       status: 'new', paymentMethod: 'pending', address: cleanAddress,
-      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), notes: address.notes,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), notes: cleanAddress.notes,
       handledBy: '', handlingNotes: '', quotedTotal: null, handledAt: '',
     };
     // No stock decrement and no payment here: the sales team handles the rest manually.
@@ -149,7 +161,8 @@ export function CheckoutPage() {
 
           <div className="row wrap" style={{ gap: 10, justifyContent: 'center' }}>
             <button className="btn btn-primary" onClick={() => exportReportPdf(`طلب-${placed.orderNumber}`)}><FileDown size={16} /> تصدير PDF</button>
-            <button className="btn btn-outline" onClick={() => window.print()}><Printer size={16} /> طباعة التقرير</button>
+            <button className="btn btn-outline" onClick={printReport}><Printer size={16} /> طباعة التقرير</button>
+            <ShareButton title={`طلب-${placed.orderNumber}`} text={`طلب الشراء ${placed.orderNumber} — ${data.settings.storeNameAr}\nالإجمالي التقديري: ${formatMoney(placed.total)}`} />
             <Link to="/store" className="btn btn-outline">العودة للمتجر</Link>
             <Link to="/store/account" className="btn btn-ghost">طلباتي</Link>
           </div>
@@ -173,7 +186,7 @@ export function CheckoutPage() {
             <h3 className="row" style={{ fontSize: 18, marginBottom: 6 }}><MapPin size={20} color="var(--plum-600)" /> عنوان الشحن والتوصيل</h3>
             <p className="muted" style={{ fontSize: 12, marginBottom: 18 }}>يرجى إدخال البيانات بدقة ليسهل على فريق المبيعات التواصل والتوصيل.</p>
             {/* The form wraps only the fields so the map's own search form is not nested inside it. */}
-            <form id="co-order-form" onSubmit={placeOrder}>
+            <form id="co-order-form" onSubmit={requestSubmit}>
               <div className="grid-2">
                 <div className="field"><label>الاسم الكامل *</label><input className="input" required value={address.fullName} onChange={(e) => set('fullName', e.target.value)} placeholder="الاسم الكامل" /></div>
                 <div className="field"><label>اسم الجهة / الشركة</label><input className="input" value={address.companyName} onChange={(e) => set('companyName', e.target.value)} placeholder="صيدلية، مركز تجميل، متجر..." /></div>
@@ -235,8 +248,26 @@ export function CheckoutPage() {
           <p className="muted" style={{ fontSize: 11, marginBottom: 18, lineHeight: 1.7 }}>السعر تقديري وقد يتغير بعد مراجعة فريق المبيعات.</p>
           <button type="submit" form="co-order-form" className="btn btn-primary btn-lg btn-block co-submit"><FileText size={16} /> إرسال طلب الشراء</button>
           <p className="muted center" style={{ fontSize: 11, marginTop: 12 }}>لن يتم تحقيق أي دفع داخل التطبيق.</p>
+          <div className="co-edit-notice">
+            <Clock size={15} />
+            <span>يمكنك تعديل طلبك أو إلغاؤه خلال <strong>24 ساعة</strong> من الإرسال فقط، طالما أنه ما زال جديداً. بعدها يتولى فريق المبيعات معالجته.</span>
+          </div>
         </div>
       </div>
+
+      <ConfirmActionModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="تأكيد إرسال الطلب"
+        tone="primary"
+        confirmLabel="اسحب لإرسال الطلب"
+        description={pendingAddress ? <>
+          أنت على وشك إرسال طلب شراء بقيمة <strong>{formatMoney(total)}</strong> إلى فريق المبيعات،
+          وسيتم إرسال تقرير بالمنتجات وعنوان الشحن (<strong>{pendingAddress.city}، {pendingAddress.area}</strong>).
+          لا يوجد دفع داخل التطبيق. يمكنك تعديل الطلب أو إلغاؤه خلال <strong>24 ساعة</strong> من الإرسال فقط، طالما أنه ما زال جديداً.
+        </> : null}
+        onConfirm={placeOrder}
+      />
     </div>
   );
 }

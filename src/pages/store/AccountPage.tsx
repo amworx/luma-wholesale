@@ -7,8 +7,11 @@ import {
   Sparkles, Zap, Heart, ArrowLeft, Building2, LayoutDashboard,
 } from 'lucide-react';
 import { useData, useSession, store, formatMoney } from '@/data/store';
-import { exportReportPdf } from '@/data/exportPdf';
+import { exportReportPdf, printReport } from '@/data/exportPdf';
+import { canCustomerModify, editWindowHoursLeft } from '@/data/orderWindow';
 import { EmptyState } from '@/components/ui/Common';
+import { ConfirmActionModal } from '@/components/ui/ConfirmActionModal';
+import { ShareButton } from '@/components/ui/ShareButton';
 import { useToast } from '@/components/ui/Toast';
 import type { Order, OrderStatus, User } from '@/types';
 
@@ -215,7 +218,24 @@ export function AccountPage() {
               </Link>
             </div>
           ) : myOrders.length ? myOrders.map((o) => (
-            <OrderCard key={o.id} order={o} expanded={expanded === o.id} onToggle={() => setExpanded(expanded === o.id ? null : o.id)} />
+            <OrderCard
+              key={o.id} order={o} expanded={expanded === o.id}
+              onToggle={() => setExpanded(expanded === o.id ? null : o.id)}
+              onRollback={(order) => {
+                store.upsertOrder({ ...order, status: 'cancelled', updatedAt: new Date().toISOString() });
+                toast.show('تم إلغاء الطلب. يمكنك إعادة تقديمه من السلة.', 'success');
+              }}
+              onEdit={(order, qtyById) => {
+                const lines = order.lines.map((l) => {
+                  const q = qtyById[l.variantId];
+                  return q === undefined ? l : { ...l, quantity: q, lineTotal: l.unitPrice * q };
+                });
+                const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
+                const total = subtotal + order.shippingFee - order.discount;
+                store.upsertOrder({ ...order, lines, subtotal, total, updatedAt: new Date().toISOString() });
+                toast.show('تم حفظ تعديلات الطلب', 'success');
+              }}
+            />
           )) : <EmptyState title="لا توجد طلبات بعد" description="عند إتمام أول طلب ستجده هنا." action={<Link to="/store/categories" className="btn btn-primary btn-sm">تصفّح المنتجات</Link>} />}
         </div>
       )}
@@ -268,9 +288,21 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
   );
 }
 
-function OrderCard({ order, expanded, onToggle }: { order: Order; expanded: boolean; onToggle: () => void }) {
+function OrderCard({ order, expanded, onToggle, onRollback, onEdit }: {
+  order: Order; expanded: boolean; onToggle: () => void;
+  onRollback: (o: Order) => void; onEdit: (o: Order, qtyById: Record<string, number>) => void;
+}) {
   const st = statusMeta[order.status] || statusMeta.new;
   const step = st.step;
+  const canModify = canCustomerModify(order);
+  const hoursLeft = editWindowHoursLeft(order);
+  const [editingOrder, setEditingOrder] = useState(false);
+  const [qtyDraft, setQtyDraft] = useState<Record<string, number>>({});
+  const [confirmRollback, setConfirmRollback] = useState(false);
+  const startEdit = () => {
+    setQtyDraft(Object.fromEntries(order.lines.map((l) => [l.variantId, l.quantity])));
+    setEditingOrder(true);
+  };
   return (
     <div className="card order-card">
       <button className="order-card-head" onClick={onToggle}>
@@ -289,6 +321,29 @@ function OrderCard({ order, expanded, onToggle }: { order: Order; expanded: bool
       </button>
       {expanded && (
         <div className="order-card-body">
+          {canModify && (
+            <div className="order-edit-window">
+              <Clock size={15} />
+              <span>يمكنك تعديل الكميات أو إلغاء هذا الطلب خلال <strong>24 ساعة</strong> من الإرسال. المتبقي <strong>{hoursLeft} ساعة</strong>.</span>
+            </div>
+          )}
+          {editingOrder && (
+            <div className="order-edit-box">
+              <h4 className="order-sub"><Pencil size={15} /> تعديل كميات الطلب</h4>
+              {order.lines.map((l, i) => (
+                <div key={i} className="row-between" style={{ gap: 10, marginBottom: 8 }}>
+                  <span className="truncate" style={{ fontSize: 12 }}>{l.productNameAr} · {l.variantNameAr}</span>
+                  <input className="input" type="number" min={1} dir="ltr" style={{ width: 80, textAlign: 'center' }}
+                    value={qtyDraft[l.variantId] ?? l.quantity}
+                    onChange={(e) => setQtyDraft((d) => ({ ...d, [l.variantId]: Math.max(1, Number(e.target.value) || 1) }))} />
+                </div>
+              ))}
+              <div className="row" style={{ gap: 8, marginTop: 10 }}>
+                <button className="btn btn-primary btn-sm" onClick={() => { onEdit(order, qtyDraft); setEditingOrder(false); }}><Save size={14} /> حفظ التعديل</button>
+                <button className="btn btn-outline btn-sm" onClick={() => setEditingOrder(false)}><X size={14} /> إلغاء</button>
+              </div>
+            </div>
+          )}
           {step > 0 && (
             <div className="order-track">
               {steps.map((s, i) => (
@@ -333,10 +388,19 @@ function OrderCard({ order, expanded, onToggle }: { order: Order; expanded: bool
             </div>
           </div>
 
+          {/* Customer self-service: edit / rollback within 24h, plus share */}
+          {canModify && !editingOrder && (
+            <div className="row wrap" style={{ gap: 8, marginTop: 18 }}>
+              <button className="btn btn-outline btn-sm" onClick={startEdit}><Pencil size={14} /> تعديل الكميات</button>
+              <button className="btn btn-danger btn-sm" onClick={() => setConfirmRollback(true)}><X size={14} /> إلغاء الطلب</button>
+            </div>
+          )}
+          <ShareButton title={`طلب-${order.orderNumber}`} text={`طلب الشراء ${order.orderNumber} — ${store.getSnapshot()?.settings.storeNameAr}\nالإجمالي التقديري: ${formatMoney(order.quotedTotal ?? order.total)}`} />
+
           {/* Printable report + PDF export */}
           <div className="row wrap" style={{ gap: 8, marginTop: 18, borderTop: '1px dashed var(--line)', paddingTop: 16 }}>
             <button className="btn btn-primary btn-sm" onClick={() => exportReportPdf(`طلب-${order.orderNumber}`)}><FileDown size={15} /> تصدير PDF</button>
-            <button className="btn btn-outline btn-sm" onClick={() => window.print()}><Printer size={15} /> طباعة التقرير</button>
+            <button className="btn btn-outline btn-sm" onClick={printReport}><Printer size={15} /> طباعة التقرير</button>
           </div>
           <div id="order-report" className="order-report" style={{ background: '#fff', border: '2px solid var(--line)', borderRadius: 14, padding: 20, textAlign: 'right', marginTop: 16 }}>
             <div className="row-between" style={{ borderBottom: '2px solid var(--plum-700)', paddingBottom: 12, marginBottom: 14 }}>
@@ -362,6 +426,15 @@ function OrderCard({ order, expanded, onToggle }: { order: Order; expanded: bool
           </div>
         </div>
       )}
+
+      <ConfirmActionModal
+        open={confirmRollback}
+        onClose={() => setConfirmRollback(false)}
+        title="إلغاء الطلب"
+        confirmLabel="اسحب للإلغاء"
+        description={<>سيتم إلغاء الطلب <strong>{order.orderNumber}</strong> نهائياً. لا يمكن التراجع عن الإلغاء؛ يمكنك إعادة تقديم طلب جديد من السلة.</>}
+        onConfirm={() => { onRollback(order); setConfirmRollback(false); }}
+      />
     </div>
   );
 }

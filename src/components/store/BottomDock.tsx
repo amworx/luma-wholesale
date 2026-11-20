@@ -78,8 +78,10 @@ export function BottomDock() {
     return () => ro.disconnect();
   }, [open, activeTab, data, count, subtotal]);
 
-  // Route change tucks the dock away.
-  useEffect(() => { setOpen(null); }, [path]);
+  // Any navigation tucks the tray away — including same-path changes such as
+  // ?tab=orders, which a pathname-only effect would miss and leave the last
+  // tapped tab stuck open/highlighted.
+  useEffect(() => { setOpen(null); }, [location.key]);
 
   // Tap outside or Escape closes it.
   useEffect(() => {
@@ -90,10 +92,15 @@ export function BottomDock() {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(null); };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('touchstart', onDown);
+    // Also catch plain clicks: some interactions (portals, programmatic clicks,
+    // keyboard-activated controls) don't emit mousedown/touchstart, which left
+    // the last tapped tab stuck highlighted.
+    document.addEventListener('click', onDown);
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('touchstart', onDown);
+      document.removeEventListener('click', onDown);
       document.removeEventListener('keydown', onKey);
     };
   }, [open]);
