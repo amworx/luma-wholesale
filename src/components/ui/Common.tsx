@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Inbox } from 'lucide-react';
+import { ConfirmActionModal } from './ConfirmActionModal';
 
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (
@@ -46,8 +47,16 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   );
 }
 
-export function ConfirmButton({ onConfirm, children, className = 'btn-icon-soft is-danger', title = 'تأكيد الحذف' }: {
+export function ConfirmButton({
+  onConfirm, children, className = 'btn-icon-soft is-danger', title = 'تأكيد الحذف',
+  message = 'لا يمكن التراجع عن هذا الإجراء بعد تنفيذه.', confirmLabel = 'اسحب للحذف',
+}: {
   onConfirm: () => void; children: ReactNode; className?: string; title?: string;
+  message?: ReactNode; confirmLabel?: string;
 }) {
-  return <button className={className} title={title} aria-label={title} onClick={() => { if (window.confirm('هل أنت متأكد؟')) onConfirm(); }}>{children}</button>;
+  const [open, setOpen] = useState(false);
+  return <>
+    <button className={className} title={title} aria-label={title} onClick={() => setOpen(true)}>{children}</button>
+    <ConfirmActionModal open={open} onClose={() => setOpen(false)} title={title} description={message} confirmLabel={confirmLabel} onConfirm={onConfirm} />
+  </>;
 }

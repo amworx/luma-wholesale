@@ -56,7 +56,7 @@ export function ProductsTable({ scope }: { scope: 'all' | 'low' }) {
                       <td style={{ fontWeight: 700, color: 'var(--plum-700)' }}>{formatMoney(minPrice)}</td>
                       <td><span className={`badge ${stock === 0 ? 'badge-danger' : low ? 'badge-warning' : 'badge-success'}`}>{stock}</span></td>
                       <td><span className={`badge ${p.isActive ? 'badge-success' : 'badge-neutral'}`}>{p.isActive ? 'مفعل' : 'معطل'}</span></td>
-                      <td><div className="row" style={{ gap: 6 }}><button className="btn-icon-soft" onClick={() => openEdit(p.id)} title="تعديل" aria-label="تعديل"><Pencil size={16} /></button><ConfirmButton onConfirm={() => remove(p.id)}><Trash2 size={16} /></ConfirmButton></div></td>
+                      <td><div className="row" style={{ gap: 6 }}><button className="btn-icon-soft" onClick={() => openEdit(p.id)} title="تعديل" aria-label="تعديل"><Pencil size={16} /></button><ConfirmButton title="حذف المنتج" message={<>سيتم حذف المنتج <strong>{p.nameAr}</strong> وكل خياراته نهائياً. لا يمكن التراجع.</>} onConfirm={() => remove(p.id)}><Trash2 size={16} /></ConfirmButton></div></td>
                     </tr>
                   );
                 })}

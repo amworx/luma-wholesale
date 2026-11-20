@@ -40,7 +40,7 @@ export function EnquiriesPage() {
                 <div className="row" style={{ gap: 6 }}>
                   <span className={`badge ${e.handled ? 'badge-success' : 'badge-warning'}`}>{e.handled ? 'تمت المعالجة' : 'جديدة'}</span>
                   <button className="btn btn-outline btn-sm" onClick={() => { store.setEnquiryHandled(e.id, !e.handled); toast.show(e.handled ? 'أُعيدت للقائمة' : 'تم تحديدها كمعالجة', 'success'); }}><Check size={14} /> {e.handled ? 'إعادة فتح' : 'معالجة'}</button>
-                  <ConfirmButton onConfirm={() => { store.deleteEnquiry(e.id); toast.show('تم حذف الرسالة', 'success'); }}><Trash2 size={15} /></ConfirmButton>
+                  <ConfirmButton title="حذف الرسالة" message="سيتم حذف رسالة العميل نهائياً. لا يمكن التراجع." onConfirm={() => { store.deleteEnquiry(e.id); toast.show('تم حذف الرسالة', 'success'); }}><Trash2 size={15} /></ConfirmButton>
                 </div>
               </div>
               <p style={{ fontSize: 13, lineHeight: 1.9, margin: '0 0 8px' }}>{e.message}</p>

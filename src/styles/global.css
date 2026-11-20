@@ -1370,3 +1370,65 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 
 .bulk-fill-notice { display: block; font-size: 10px; font-weight: 700; margin-top: 7px; line-height: 1.6; color: var(--success); }
 .bulk-fill-notice.is-warn { color: var(--warning); }
+
+/* ---- Swipe to confirm (21st.dev concept, rebuilt RTL-first) ---- */
+.swipe-track {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  height: 58px; border-radius: 999px; overflow: hidden; user-select: none;
+  touch-action: none; cursor: grab; direction: rtl;
+  background: var(--canvas); border: 1px solid var(--line);
+  transition: box-shadow .2s;
+}
+.swipe-track:active { cursor: grabbing; }
+.swipe-track:focus-visible { outline: 3px solid var(--plum-300); outline-offset: 2px; }
+.swipe-track.tone-danger { --sw: var(--danger); --sw-bg: var(--danger-bg); }
+.swipe-track.tone-primary { --sw: var(--plum-600); --sw-bg: var(--rose-50); }
+.swipe-track.is-disabled { opacity: .5; pointer-events: none; }
+.swipe-fill {
+  position: absolute; inset-block: 0; inset-inline-start: 0;
+  background: var(--sw); opacity: .92; border-radius: 999px; pointer-events: none;
+  transition: width .12s ease-out;
+}
+.swipe-label, .swipe-hint {
+  position: relative; z-index: 1; pointer-events: none;
+  font-size: 13px; font-weight: 800; color: var(--ink-700);
+  transition: opacity .12s; white-space: nowrap;
+}
+.swipe-label { position: absolute; inset-inline-start: 0; inset-inline-end: 0; text-align: center; }
+.swipe-hint { position: absolute; color: #fff; inset-inline-start: 0; inset-inline-end: 0; text-align: center; }
+.swipe-knob {
+  position: absolute; top: 5px; width: 46px; height: 46px; border-radius: 50%;
+  background: var(--sw); color: #fff; display: grid; place-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,.18); z-index: 2; pointer-events: none;
+  transition: inset-inline-start .18s cubic-bezier(.34,1.56,.64,1);
+}
+.swipe-track.is-dragging .swipe-knob { transition: none; }
+.swipe-track.is-success .swipe-fill, .swipe-track.is-success .swipe-knob { background: var(--success); }
+.swipe-track.is-error .swipe-fill, .swipe-track.is-error .swipe-knob { background: var(--danger); }
+.swipe-track.is-error { animation: swipe-shake .38s ease; }
+.swipe-track.is-working .swipe-knob { animation: swipe-pulse 1s ease-in-out infinite; }
+@keyframes swipe-shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+@keyframes swipe-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(.92)} }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Confirmation dialog body */
+.confirm-body { display: grid; gap: 16px; text-align: center; padding: 6px 2px 2px; }
+.confirm-icon {
+  width: 58px; height: 58px; border-radius: 50%; margin: 0 auto;
+  display: grid; place-items: center;
+}
+.confirm-icon.danger { background: var(--danger-bg); color: var(--danger); }
+.confirm-icon.primary { background: var(--rose-50); color: var(--plum-600); }
+.confirm-desc { font-size: 14px; line-height: 1.9; color: var(--ink-700); }
+.confirm-desc strong { color: var(--plum-700); }
+.confirm-cancel {
+  background: none; border: 0; color: var(--ink-500); font-size: 13px;
+  font-weight: 700; cursor: pointer; padding: 6px;
+}
+.confirm-cancel:hover { color: var(--plum-700); }
+@media (max-width: 480px) {
+  .swipe-track { height: 54px; }
+  .swipe-knob { width: 42px; height: 42px; top: 5px; }
+  .swipe-label, .swipe-hint { font-size: 12px; }
+}

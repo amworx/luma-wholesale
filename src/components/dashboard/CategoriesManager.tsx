@@ -107,7 +107,7 @@ export function CategoriesManager() {
             <button className="btn-icon" onClick={() => move(c, 1)} title="تحريك للأسفل"><ArrowDown size={14} /></button>
             <button className="btn btn-ghost btn-sm" onClick={() => edit(undefined, c.id)} title="إضافة فئة فرعية"><Plus size={14} /> فرعية</button>
             <button className="btn-icon" onClick={() => edit(c)} title="تعديل"><Pencil size={15} /></button>
-            <ConfirmButton onConfirm={() => remove(c.id)}><Trash2 size={15} /></ConfirmButton>
+            <ConfirmButton title="حذف الفئة" message={<>سيتم حذف الفئة <strong>{c.nameAr}</strong> نهائياً. تأكد من خلوّها من المنتجات والفئات الفرعية.</>} onConfirm={() => remove(c.id)}><Trash2 size={15} /></ConfirmButton>
           </div>
         </div>
         {!isCollapsed && children.map((ch) => renderNode(ch, depth + 1))}

@@ -37,7 +37,7 @@ export function AdminUsers() {
             <td><span className={`badge ${roleBadge[u.role]}`}>{u.role === 'admin' ? <ShieldCheck size={12} /> : u.role === 'sales' ? <Users size={12} /> : <ShoppingBag size={12} />} {roleLabels[u.role]}</span></td>
             <td><span className={`badge ${u.active ? 'badge-success' : 'badge-danger'}`}>{u.active ? 'نشط' : 'معطّل'}</span>{u.role === 'customer' && <div style={{ marginTop: 4 }}><span className={`badge ${u.accountStatus === 'active' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: 9 }}>{u.accountStatus === 'active' ? 'جملة موافق عليه' : u.accountStatus === 'pending' ? 'قيد المراجعة' : u.accountStatus === 'suspended' ? 'موقوف' : 'مرفوض'}</span></div>}</td>
             <td className="muted" style={{ fontSize: 12 }}>{new Date(u.createdAt).toLocaleDateString('ar-SA')}</td>
-            <td><div className="row" style={{ gap: 4 }}><button className="btn-icon" onClick={() => edit(u)}><Pencil size={16} /></button>{u.id !== session?.userId && <ConfirmButton onConfirm={() => { store.deleteUser(u.id); toast.show('تم حذف المستخدم', 'success'); }}><Trash2 size={16} /></ConfirmButton>}</div></td>
+            <td><div className="row" style={{ gap: 4 }}><button className="btn-icon" onClick={() => edit(u)}><Pencil size={16} /></button>{u.id !== session?.userId && <ConfirmButton title="حذف المستخدم" message={<>سيتم حذف المستخدم <strong>{u.name}</strong> نهائياً. لا يمكن التراجع.</>} onConfirm={() => { store.deleteUser(u.id); toast.show('تم حذف المستخدم', 'success'); }}><Trash2 size={16} /></ConfirmButton>}</div></td>
           </tr>
         ))}</tbody>
       </table></div></div>

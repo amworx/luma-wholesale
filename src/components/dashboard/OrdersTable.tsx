@@ -4,6 +4,7 @@ import { useData, store, formatMoney } from '@/data/store';
 import { useToast } from '@/components/ui/Toast';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmButton, EmptyState } from '@/components/ui/Common';
+import { ConfirmActionModal } from '@/components/ui/ConfirmActionModal';
 import type { Order, OrderStatus, PaymentMethod } from '@/types';
 import { exportReportPdf } from '@/data/exportPdf';
 
@@ -24,6 +25,7 @@ export function OrdersTable({ compact }: { compact?: boolean }) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [viewing, setViewing] = useState<Order | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<{ order: Order; status: OrderStatus } | null>(null);
 
   if (!data) return null;
   let orders = [...data.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -35,7 +37,16 @@ export function OrdersTable({ compact }: { compact?: boolean }) {
     store.upsertOrder(next);
     setViewing(next);
   };
-  const setStatusOf = (o: Order, s: OrderStatus) => { patch(o, { status: s }); toast.show('تم تحديث حالة الطلب', 'success'); };
+  const setStatusOf = (o: Order, s: OrderStatus) => {
+    if (o.status === s) return;
+    setPendingStatus({ order: o, status: s });
+  };
+  const applyStatus = () => {
+    if (!pendingStatus) return;
+    const label = statuses.find((x) => x.key === pendingStatus.status)?.label || '';
+    patch(pendingStatus.order, { status: pendingStatus.status });
+    toast.show(`تم تحديث حالة الطلب إلى «${label}»`, 'success');
+  };
 
   return (
     <>
@@ -55,7 +66,7 @@ export function OrdersTable({ compact }: { compact?: boolean }) {
               <td style={{ fontWeight: 800, color: 'var(--plum-700)' }}>{formatMoney(o.quotedTotal ?? o.total)}</td>
               <td className="muted" style={{ fontSize: 12 }}>{payLabel(o.paymentMethod)}</td>
               <td><span className={`badge ${st.cls}`}>{st.label}</span></td>
-              <td><div className="row" style={{ gap: 4 }}><button className="btn-icon" onClick={() => setViewing(o)} title="تفاصيل ومعالجة"><Eye size={16} /></button>{!compact && <ConfirmButton onConfirm={() => { store.deleteOrder(o.id); toast.show('تم حذف الطلب', 'success'); }}><Trash2 size={16} /></ConfirmButton>}</div></td>
+              <td><div className="row" style={{ gap: 4 }}><button className="btn-icon" onClick={() => setViewing(o)} title="تفاصيل ومعالجة"><Eye size={16} /></button>{!compact && <ConfirmButton title="حذف الطلب" message={<>سيتم حذف الطلب <strong>{o.orderNumber}</strong> وتقريره نهائياً. لا يمكن التراجع.</>} onConfirm={() => { store.deleteOrder(o.id); toast.show('تم حذف الطلب', 'success'); }}><Trash2 size={16} /></ConfirmButton>}</div></td>
             </tr>;
           })}</tbody>
         </table></div> : <EmptyState title="لا توجد طلبات" description="ستظهر طلبات الشراء هنا بعد إرسال العملاء لها." />}
@@ -107,9 +118,29 @@ export function OrdersTable({ compact }: { compact?: boolean }) {
               <div className="field" style={{ gridColumn: '1 / -1' }}><label>ملاحظات داخلية (لا تظهر للعميل)</label><textarea className="textarea" value={viewing.handlingNotes} onChange={(e) => patch(viewing, { handlingNotes: e.target.value })} placeholder="ملاحظات الفريق..." /></div>
             </div>
             <div className="field" style={{ marginTop: 14 }}><label>حالة الطلب</label><div className="row wrap">{statuses.map((s) => <button key={s.key} className={`btn btn-sm ${viewing.status === s.key ? 'btn-primary' : 'btn-outline'}`} onClick={() => setStatusOf(viewing, s.key)}>{s.label}</button>)}</div></div>
+            {viewing.status === 'new' && (
+              <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setPendingStatus({ order: viewing, status: 'processing' })}>
+                <UserCheck size={17} /> تأكيد الطلب والبدء بالتجهيز
+              </button>
+            )}
           </div>
         </div>}
       </Modal>
+
+      <ConfirmActionModal
+        open={!!pendingStatus}
+        onClose={() => setPendingStatus(null)}
+        title="تغيير حالة الطلب"
+        tone="primary"
+        confirmLabel="اسحب لتغيير الحالة"
+        description={pendingStatus ? <>
+          سيتم تغيير حالة الطلب <strong>{pendingStatus.order.orderNumber}</strong> من
+          «{statuses.find((x) => x.key === pendingStatus.order.status)?.label}» إلى
+          «<strong>{statuses.find((x) => x.key === pendingStatus.status)?.label}</strong>».
+          سيظهر التغيير للعميل فوراً.
+        </> : null}
+        onConfirm={applyStatus}
+      />
     </>
   );
 }
