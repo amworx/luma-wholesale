@@ -281,6 +281,14 @@ export function ProductPage() {
             >
               <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} />
             </button>
+            <button
+              className="btn btn-outline btn-lg"
+              onClick={() => void shareProduct()}
+              title="مشاركة المنتج"
+              aria-label="مشاركة المنتج"
+            >
+              <Share2 size={20} />
+            </button>
           </div>
 
           <div className="card" style={{ padding: 14, display: 'grid', gap: 10 }}>
