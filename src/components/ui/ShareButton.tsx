@@ -45,12 +45,12 @@ export function ShareButton({ title, text = '', url, order, storeNameAr = 'لُ�
         file = await generateOrderPdf(order, storeNameAr, fileName || title);
       }
 
-      const data: ShareData = {
-        title,
-        text: file ? `${title} — تقرير PDF مرفق` : text,
-        url: file ? undefined : shareUrl,
-        files: file ? [file] : undefined,
-      };
+      // When sharing a FILE, pass ONLY title + files. Several Android browsers
+      // reject a share payload that mixes `files` with `text`/`url`, which was
+      // silently falling through to the download fallback.
+      const data: ShareData = file
+        ? { title, files: [file] }
+        : { title, text, url: shareUrl };
 
       // Try the native share sheet whenever it exists. Some browsers report
       // canShare({files}) === false yet still accept the file, so we attempt

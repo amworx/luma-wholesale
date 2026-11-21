@@ -79,7 +79,7 @@ export function buildReportModel(order: Order, storeNameAr: string): ReportModel
       formatMoney(l.unitPrice), formatMoney(l.lineTotal),
     ]),
     totals: [
-      { label: 'المجموع الفرعي (سعر الطلب)', value: formatMoney(order.subtotal) },
+      { label: 'المجموع الفرعي', value: formatMoney(order.subtotal) },
       { label: 'الشحن التقديري', value: order.shippingFee ? formatMoney(order.shippingFee) : '—' },
       { label: 'الإجمالي التقديري', value: formatMoney(order.total) },
     ],

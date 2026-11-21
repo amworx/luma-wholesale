@@ -32,9 +32,11 @@ async function loadPdf(): Promise<LoadedPdf> {
     loaded = (async () => {
       const [{ default: raw }] = await Promise.all([import('pdfmake/build/pdfmake.js')]);
       const pdfmake = raw as unknown as PdfMakeRuntime;
+      // Use the SAME font family as the app/Export (Cairo), not Amiri, so the
+      // shared PDF matches the browser-printed report exactly.
       const [regular, bold] = await Promise.all([
-        fetch(assetUrl('fonts/Amiri-Regular.ttf')).then((r) => r.arrayBuffer()),
-        fetch(assetUrl('fonts/Amiri-Bold.ttf')).then((r) => r.arrayBuffer()),
+        fetch(assetUrl('fonts/Cairo-Regular.ttf')).then((r) => r.arrayBuffer()),
+        fetch(assetUrl('fonts/Cairo-Bold.ttf')).then((r) => r.arrayBuffer()),
       ]);
       const b64 = (buf: ArrayBuffer) => {
         const bytes = new Uint8Array(buf);
@@ -43,13 +45,13 @@ async function loadPdf(): Promise<LoadedPdf> {
         return btoa(s);
       };
       pdfmake.addVirtualFileSystem({
-        'Amiri-Regular.ttf': b64(regular),
-        'Amiri-Bold.ttf': b64(bold),
+        'Cairo-Regular.ttf': b64(regular),
+        'Cairo-Bold.ttf': b64(bold),
       });
       const fonts: TFontDictionary = {
-        Amiri: {
-          normal: 'Amiri-Regular.ttf', bold: 'Amiri-Bold.ttf',
-          italics: 'Amiri-Regular.ttf', bolditalics: 'Amiri-Bold.ttf',
+        Cairo: {
+          normal: 'Cairo-Regular.ttf', bold: 'Cairo-Bold.ttf',
+          italics: 'Cairo-Regular.ttf', bolditalics: 'Cairo-Bold.ttf',
         },
       };
       return { pdfmake, fonts };
@@ -62,6 +64,12 @@ async function loadPdf(): Promise<LoadedPdf> {
 const bidi = bidiFactory();
 const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
 const hasWeak = (s: string) => /[0-9\u0660-\u0669A-Za-z]/.test(s);
+// pdfmake mirrors bracket pairs on every RTL line: feeding it "(سعر الطلب)"
+// renders as ")سعر الطلب(". Pre-mirroring the brackets compensates, so the
+// viewer sees the intended parentheses. Applied once, after any bidi reorder.
+const mirrorBrackets = (s: string) => s
+  .replace(/[()]/g, (c) => (c === '(' ? ')' : '('))
+  .replace(/[\[\]]/g, (c) => (c === '[' ? ']' : '['));
 const reverse = (s: string) => [...s].reverse().join('');
 const NBSP = '\u00A0';
 
@@ -77,9 +85,11 @@ const NBSP = '\u00A0';
 export function rtlText(s: string): string {
   if (!s) return s;
   if (!hasArabic(s)) return s;
-  const out = hasWeak(s)
+  let out = hasWeak(s)
     ? reverse(bidi.getReorderedString(s, bidi.getEmbeddingLevels(s, 'rtl')))
     : s;
+  // pdfmake mirrors brackets on every RTL line, including pure-Arabic ones.
+  if (/[()\[\]]/.test(out)) out = mirrorBrackets(out);
   // pdfmake collapses ordinary spaces inside RTL runs; NBSP preserves them.
   return out.replace(/ /g, NBSP);
 }
@@ -166,7 +176,7 @@ export function buildOrderReportDoc(model: ReportModel): TDocumentDefinitions {
     pageSize: 'A4',
     pageMargins: [40, 40, 40, 40],
     content,
-    defaultStyle: { font: 'Amiri' },
+    defaultStyle: { font: 'Cairo' },
   };
 }
 
