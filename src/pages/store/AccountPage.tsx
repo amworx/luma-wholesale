@@ -395,7 +395,7 @@ function OrderCard({ order, expanded, onToggle, onRollback, onEdit }: {
               <button className="btn btn-danger btn-sm" onClick={() => setConfirmRollback(true)}><X size={14} /> إلغاء الطلب</button>
             </div>
           )}
-          <ShareButton title={`طلب-${order.orderNumber}`} reportId="order-report" fileName={`طلب-${order.orderNumber}`} />
+          <ShareButton title={`طلب-${order.orderNumber}`} order={order} storeNameAr={store.getSnapshot()?.settings.storeNameAr} fileName={`طلب-${order.orderNumber}`} />
 
           {/* Printable report + PDF export */}
           <div className="row wrap" style={{ gap: 8, marginTop: 18, borderTop: '1px dashed var(--line)', paddingTop: 16 }}>

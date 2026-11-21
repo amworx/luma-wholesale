@@ -74,7 +74,7 @@ export function OrdersTable({ compact }: { compact?: boolean }) {
       </div>
 
       <Modal open={!!viewing} onClose={() => setViewing(null)} title={`تقرير الطلب ${viewing?.orderNumber || ''}`} wide
-        footer={<><button className="btn btn-primary" onClick={() => viewing && exportReportPdf(`طلب-${viewing.orderNumber}`)}><FileDown size={16} /> تصدير PDF</button><button className="btn btn-outline" onClick={printReport}><Printer size={16} /> طباعة التقرير</button>{viewing && <ShareButton title={`طلب-${viewing.orderNumber}`} reportId="order-report" fileName={`طلب-${viewing.orderNumber}`} />}<button className="btn btn-outline" onClick={() => setViewing(null)}>إغلاق</button></>}>
+        footer={<><button className="btn btn-primary" onClick={() => viewing && exportReportPdf(`طلب-${viewing.orderNumber}`)}><FileDown size={16} /> تصدير PDF</button><button className="btn btn-outline" onClick={printReport}><Printer size={16} /> طباعة التقرير</button>{viewing && <ShareButton title={`طلب-${viewing.orderNumber}`} order={viewing} storeNameAr={data.settings.storeNameAr} fileName={`طلب-${viewing.orderNumber}`} />}<button className="btn btn-outline" onClick={() => setViewing(null)}>إغلاق</button></>}>
         {viewing && <div style={{ display: 'grid', gap: 20 }}>
           {/* Printable order report */}
           <div id="order-report" className="order-report" style={{ background: '#fff', border: '2px solid var(--line)', borderRadius: 14, padding: 20, textAlign: 'right' }}>

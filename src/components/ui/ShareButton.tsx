@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Share2, Link2, Check, FileDown, Loader2 } from 'lucide-react';
+import type { Order } from '@/types';
 import { useToast } from './Toast';
 
 /**
@@ -18,15 +19,17 @@ interface Props {
   title: string;
   text?: string;
   url?: string;
-  /** id of the printable report element; when set, shares a generated PDF file */
-  reportId?: string;
+  /** when set, shares a genuine text-based PDF generated from the order */
+  order?: Order;
+  /** store name for the PDF header */
+  storeNameAr?: string;
   /** filename for the generated PDF (without extension) */
   fileName?: string;
   className?: string;
   compact?: boolean;
 }
 
-export function ShareButton({ title, text = '', url, reportId, fileName, className = '', compact = false }: Props) {
+export function ShareButton({ title, text = '', url, order, storeNameAr = 'لُما', fileName, className = '', compact = false }: Props) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -37,9 +40,9 @@ export function ShareButton({ title, text = '', url, reportId, fileName, classNa
     setBusy(true);
     try {
       let file: File | undefined;
-      if (reportId) {
-        const { generateReportPdf } = await import('@/data/reportPdf');
-        file = await generateReportPdf(reportId, fileName || title);
+      if (order) {
+        const { generateOrderPdf } = await import('@/data/reportPdf');
+        file = await generateOrderPdf(order, storeNameAr, fileName || title);
       }
 
       const data: ShareData = {
@@ -81,10 +84,10 @@ export function ShareButton({ title, text = '', url, reportId, fileName, classNa
     <button className={`btn btn-outline btn-sm ${className}`} onClick={() => void share()} disabled={busy}>
       {busy ? <Loader2 size={15} className="spin" />
         : copied ? <Check size={15} />
-        : reportId ? <FileDown size={15} />
+        : order ? <FileDown size={15} />
         : <Share2 size={15} />}
-      {busy ? 'جارٍ التحضير...' : compact ? 'مشاركة' : reportId ? 'مشاركة PDF' : 'مشاركة'}
-      {!reportId && !busy && <Link2 size={13} style={{ opacity: .6 }} />}
+      {busy ? 'جارٍ التحضير...' : compact ? 'مشاركة' : order ? 'مشاركة PDF' : 'مشاركة'}
+      {!order && !busy && <Link2 size={13} style={{ opacity: .6 }} />}
     </button>
   );
 }

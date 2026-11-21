@@ -1401,6 +1401,10 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .swipe-track.is-dragging .swipe-fill { transition: none !important; }
 .swipe-track.is-success .swipe-fill, .swipe-track.is-success .swipe-knob { background: var(--success); }
 .swipe-track.is-error .swipe-fill, .swipe-track.is-error .swipe-knob { background: var(--danger); }
+/* Once the bar is filled, the status text must be white to stay readable. */
+.swipe-track.is-working .swipe-label,
+.swipe-track.is-success .swipe-label,
+.swipe-track.is-error .swipe-label { color: #fff; }
 .swipe-track.is-error { animation: swipe-shake .38s ease; }
 .swipe-track.is-working .swipe-knob { animation: swipe-pulse 1s ease-in-out infinite; }
 @keyframes swipe-shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }

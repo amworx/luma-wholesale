@@ -50,8 +50,16 @@ export function SwipeConfirm({
     const px = Math.max(0, Math.min(1, p)) * maxOffset();
     if (knobRef.current) knobRef.current.style.insetInlineStart = `${px}px`;
     if (fillRef.current) fillRef.current.style.width = `${px + KNOB}px`;
-    if (labelRef.current) labelRef.current.style.opacity = String(1 - Math.min(0.9, p * 1.1));
-    if (hintRef.current) hintRef.current.style.opacity = String(Math.min(0.85, p * 1.4));
+    // Label fades out first; the white hint only appears afterwards so the two
+    // never overlap (they occupy the same absolute position).
+    if (labelRef.current) labelRef.current.style.opacity = String(Math.max(0, 1 - p * 6));
+    if (hintRef.current) hintRef.current.style.opacity = String(Math.min(1, Math.max(0, (p - 0.22) * 5)));
+  }, []);
+
+  /** Force the status label visible and the drag hint hidden (terminal states). */
+  const showStatusText = useCallback(() => {
+    if (labelRef.current) labelRef.current.style.opacity = '1';
+    if (hintRef.current) hintRef.current.style.opacity = '0';
   }, []);
 
   const vibrate = (pattern: number | number[]) => {
@@ -82,18 +90,21 @@ export function SwipeConfirm({
   const commit = useCallback(async () => {
     paint(1);
     updatePhase('working');
+    showStatusText();
     vibrate(18);
     try {
       await onConfirm();
       updatePhase('success');
+      showStatusText();
       vibrate([12, 40, 24]);
       window.setTimeout(() => { paint(0); updatePhase('idle'); }, 1100);
     } catch {
       updatePhase('error');
+      showStatusText();
       vibrate([40, 60, 40]);
       window.setTimeout(() => { paint(0); updatePhase('idle'); }, 600);
     }
-  }, [onConfirm, paint]);
+  }, [onConfirm, paint, showStatusText]);
 
   const onPointerUp = () => {
     if (phaseRef.current !== 'dragging') return;
@@ -132,10 +143,10 @@ export function SwipeConfirm({
       onKeyDown={onKeyDown}
     >
       <span ref={fillRef} className="swipe-fill" style={{ width: initialOffset + KNOB }} />
-      <span ref={labelRef} className="swipe-label">
+      <span ref={labelRef} className="swipe-label" style={{ opacity: 1 }}>
         {phase === 'success' ? successLabel : phase === 'working' ? 'جارٍ التنفيذ...' : label}
       </span>
-      <span ref={hintRef} className="swipe-hint">أكمل السحب</span>
+      <span ref={hintRef} className="swipe-hint" style={{ opacity: 0 }}>أكمل السحب</span>
       <span ref={knobRef} className="swipe-knob" style={{ insetInlineStart: initialOffset }}>
         {phase === 'working' ? <Loader2 size={20} className="spin" />
           : phase === 'success' ? <Check size={22} strokeWidth={3} />
