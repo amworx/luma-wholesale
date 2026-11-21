@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, CheckCircle2, FileText, Printer, PackageCheck, FileDown, Clock } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { MapPin, CheckCircle2, FileText, Printer, PackageCheck, FileDown, Clock, UserPlus, LogIn, ShoppingCart } from 'lucide-react';
 import { useData, useSession, store, formatMoney } from '@/data/store';
 import { useCart } from '@/state/CartContext';
 import { useToast } from '@/components/ui/Toast';
@@ -19,6 +19,7 @@ const emptyAddress: ShippingAddress = {
 export function CheckoutPage() {
   const data = useData();
   const session = useSession();
+  const location = useLocation();
   const { priced, subtotal, clear, hasInvalid } = useCart();
   const toast = useToast();
   const [address, setAddress] = useState<ShippingAddress>({ ...emptyAddress, fullName: session?.name || '' });
@@ -73,6 +74,13 @@ export function CheckoutPage() {
 
   // Second step: only runs after the customer completes the swipe.
   const placeOrder = () => {
+    // Backstop: a visitor must never be able to create an order, even if the
+    // form was reached from a stale tab or the session changed mid-flow.
+    if (!session) {
+      setConfirmOpen(false);
+      toast.show('يجب إنشاء حساب أو تسجيل الدخول قبل إرسال الطلب', 'error');
+      return;
+    }
     const cleanAddress = pendingAddress;
     if (!cleanAddress) return;
     setAddress(cleanAddress);
@@ -165,6 +173,35 @@ export function CheckoutPage() {
             <ShareButton title={`طلب-${placed.orderNumber}`} order={placed} storeNameAr={data.settings.storeNameAr} fileName={`طلب-${placed.orderNumber}`} />
             <Link to="/store" className="btn btn-outline">العودة للمتجر</Link>
             <Link to="/store/account" className="btn btn-ghost">طلباتي</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Visitors must have an account before placing an order, so the sales team
+  // can follow up and the customer can track their order afterwards.
+  if (!session) {
+    const next = encodeURIComponent(location.pathname + location.search);
+    return (
+      <div className="container" style={{ padding: '60px 20px', maxWidth: 620 }}>
+        <div className="card card-pad center" style={{ padding: 44 }}>
+          <div style={{ width: 76, height: 76, borderRadius: '50%', background: 'var(--rose-50)', color: 'var(--plum-700)', display: 'grid', placeItems: 'center', margin: '0 auto 20px' }}>
+            <UserPlus size={38} />
+          </div>
+          <h1 style={{ fontSize: 24, marginBottom: 12 }}>سجّل الدخول لإرسال الطلب</h1>
+          <p className="muted" style={{ lineHeight: 1.9, marginBottom: 8 }}>
+            لإرسال طلب الشراء تحتاج إلى حساب. هذا يسمح لك بمتابعة طلبك والتواصل مع فريق المبيعات بخصوص الكميات والسعر النهائي والشحن.
+          </p>
+          <p className="muted" style={{ lineHeight: 1.9, marginBottom: 26 }}>
+            منتجاتك محفوظة في السلة وستبقى كما هي بعد إنشاء الحساب.
+          </p>
+          <div className="row wrap center" style={{ gap: 10, justifyContent: 'center' }}>
+            <Link to={`/login?next=${next}`} className="btn btn-primary"><UserPlus size={16} /> إنشاء حساب جديد</Link>
+            <Link to={`/login?next=${next}`} className="btn btn-outline"><LogIn size={16} /> لدي حساب، تسجيل الدخول</Link>
+          </div>
+          <div style={{ marginTop: 24 }}>
+            <Link to="/store/cart" className="btn btn-ghost"><ShoppingCart size={15} /> العودة إلى السلة</Link>
           </div>
         </div>
       </div>

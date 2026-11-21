@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Mail, Sparkles, ShieldCheck, Users, ShoppingBag, Eye, EyeOff, ArrowRight, Home } from 'lucide-react';
 import { store, useSession } from '@/data/store';
 import { useToast } from '@/components/ui/Toast';
@@ -12,6 +12,12 @@ const demos = [
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // Guests sent here from checkout come back to it after signing up / in.
+  // Only an internal store path is accepted, so this cannot be used to bounce
+  // users to an external site.
+  const rawNext = params.get('next') || '';
+  const next = rawNext.startsWith('/store/') ? rawNext : '/store';
   const session = useSession();
   const toast = useToast();
   const [email, setEmail] = useState('');
@@ -19,9 +25,13 @@ export function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
 
+  const destination = (role?: string) => {
+    if (next !== '/store') return next;
+    return role === 'admin' ? '/admin' : role === 'sales' ? '/sales' : '/store';
+  };
+
   if (session) {
-    const dest = session.role === 'admin' ? '/admin' : session.role === 'sales' ? '/sales' : '/store';
-    navigate(dest, { replace: true });
+    navigate(destination(session.role), { replace: true });
   }
 
   const doLogin = (e: React.FormEvent) => {
@@ -29,16 +39,14 @@ export function LoginPage() {
     const res = store.login(email, password);
     if (!res.ok) { setError(res.error || 'خطأ'); return; }
     toast.show('أهلاً بك!', 'success');
-    const s = store.getSessionSnapshot();
-    navigate(s?.role === 'admin' ? '/admin' : s?.role === 'sales' ? '/sales' : '/store', { replace: true });
+    navigate(destination(store.getSessionSnapshot()?.role), { replace: true });
   };
 
   const quickLogin = (mail: string, pass: string) => {
     const res = store.login(mail, pass);
     if (res.ok) {
       toast.show('تم الدخول بالحساب التجريبي', 'success');
-      const s = store.getSessionSnapshot();
-      navigate(s?.role === 'admin' ? '/admin' : s?.role === 'sales' ? '/sales' : '/store', { replace: true });
+      navigate(destination(store.getSessionSnapshot()?.role), { replace: true });
     }
   };
 
@@ -47,7 +55,7 @@ export function LoginPage() {
     const res = store.registerCustomer(email.split('@')[0], email, password);
     if (!res.ok) { setError(res.error || 'خطأ'); return; }
     toast.show('تم إنشاء الحساب بنجاح', 'success');
-    navigate('/store', { replace: true });
+    navigate(next, { replace: true });
   };
 
   return (

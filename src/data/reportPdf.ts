@@ -59,13 +59,29 @@ async function loadPdf(): Promise<LoadedPdf> {
 // --- bidi ordering -------------------------------------------------------
 const bidi = bidiFactory();
 const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
+// Digits (ASCII or Arabic-Indic) and Latin letters are "weak" characters whose
+// position depends on the bidi algorithm. Pure Arabic text has none of these.
+const hasWeak = (s: string) => /[0-9\u0660-\u0669A-Za-z]/.test(s);
 const reverse = (s: string) => [...s].reverse().join('');
+const NBSP = '\u00A0';
 
-/** Correct visual order for a string that pdfmake will reverse internally. */
+/**
+ * Correct visual order for a string that pdfmake will reverse internally.
+ *
+ * - Pure LTR (order no., phone, $ price) passes through untouched.
+ * - Pure Arabic (letters + spaces) also passes through: pdfmake already lays
+ *   it out right-to-left, and a bidi transform here scrambles word order.
+ * - Mixed Arabic + digits/Latin gets the bidi visual-order transform so dates
+ *   and numbers land on the correct side.
+ *
+ * pdfmake collapses ordinary spaces between Arabic words, so we use NBSP.
+ */
 export function rtlText(s: string): string {
-  if (!s || !hasArabic(s)) return s; // pure LTR (order no., phone, $ price) passes through
-  const levels = bidi.getEmbeddingLevels(s, 'rtl');
-  return reverse(bidi.getReorderedString(s, levels));
+  if (!s || !hasArabic(s)) return s;
+  const out = hasWeak(s)
+    ? reverse(bidi.getReorderedString(s, bidi.getEmbeddingLevels(s, 'rtl')))
+    : s;
+  return out.replace(/ /g, NBSP);
 }
 
 const money = (cents: number) => formatMoney(cents);
