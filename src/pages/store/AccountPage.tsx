@@ -399,7 +399,7 @@ function OrderCard({ order, expanded, onToggle, onRollback, onEdit }: {
 
           {/* Printable report + PDF export */}
           <div className="row wrap" style={{ gap: 8, marginTop: 18, borderTop: '1px dashed var(--line)', paddingTop: 16 }}>
-            <button className="btn btn-primary btn-sm" onClick={() => exportReportPdf(`طلب-${order.orderNumber}`)}><FileDown size={15} /> تصدير PDF</button>
+            <button className="btn btn-primary btn-sm" onClick={() => exportReportPdf(order, store.getSnapshot()?.settings.storeNameAr || 'لُما', `طلب-${order.orderNumber}`)}><FileDown size={15} /> تصدير PDF</button>
             <button className="btn btn-outline btn-sm" onClick={printReport}><Printer size={15} /> طباعة التقرير</button>
           </div>
           <div id="order-report" className="order-report" style={{ background: '#fff', border: '2px solid var(--line)', borderRadius: 14, padding: 20, textAlign: 'right', marginTop: 16 }}>

@@ -1,14 +1,23 @@
+import type { Order } from '@/types';
+
 /**
- * Print / export the currently visible printable report (#order-report) to PDF.
+ * Export an order report to PDF.
  *
- * Arabic/RTL renders correctly through the browser's own print engine, so we
- * use print-to-PDF rather than jsPDF (which would need embedded Arabic fonts).
+ * Both "Export PDF" and "Share PDF" now go through the SAME generator
+ * (generateOrderPdf -> reportModel -> pdfmake). Previously Export used the
+ * browser print dialog on hand-written report DOM while Share rebuilt the
+ * report in pdfmake; the two definitions drifted apart, which is exactly why
+ * the shared PDF looked broken while Export looked fine. One content source
+ * and one renderer means the two outputs are now identical.
  *
- * Blank-page fix: the old CSS used `visibility:hidden` on the app, which kept
- * the entire page's height in layout and produced empty trailing pages. Here
- * we clone just the report into a dedicated #print-portal and hide the app root
- * with `display:none`, so the printed document contains only the report.
+ * The browser-print path is still available via printReport() for the
+ * dedicated "print" button.
  */
+export async function exportReportPdf(order: Order, storeNameAr: string, titleAr: string): Promise<void> {
+  const { generateOrderPdf, downloadPdf } = await import('./reportPdf');
+  const file = await generateOrderPdf(order, storeNameAr, titleAr);
+  downloadPdf(file);
+}
 
 function preparePrint(): boolean {
   const source = document.getElementById('order-report');
@@ -44,14 +53,4 @@ export function printReport(): void {
   window.print();
   // Safari/Android may not fire afterprint reliably; clean up as a fallback.
   window.setTimeout(finish, 5000);
-}
-
-/** Export the report to PDF via the browser print dialog with a useful name. */
-export function exportReportPdf(titleAr: string): void {
-  const previous = document.title;
-  document.title = titleAr;
-  requestAnimationFrame(() => {
-    printReport();
-    window.setTimeout(() => { document.title = previous; }, 1000);
-  });
 }

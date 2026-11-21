@@ -168,7 +168,7 @@ export function CheckoutPage() {
           </div>
 
           <div className="row wrap" style={{ gap: 10, justifyContent: 'center' }}>
-            <button className="btn btn-primary" onClick={() => exportReportPdf(`طلب-${placed.orderNumber}`)}><FileDown size={16} /> تصدير PDF</button>
+            <button className="btn btn-primary" onClick={() => exportReportPdf(placed, data.settings.storeNameAr, `طلب-${placed.orderNumber}`)}><FileDown size={16} /> تصدير PDF</button>
             <button className="btn btn-outline" onClick={printReport}><Printer size={16} /> طباعة التقرير</button>
             <ShareButton title={`طلب-${placed.orderNumber}`} order={placed} storeNameAr={data.settings.storeNameAr} fileName={`طلب-${placed.orderNumber}`} />
             <Link to="/store" className="btn btn-outline">العودة للمتجر</Link>
