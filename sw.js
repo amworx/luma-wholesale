@@ -2,7 +2,7 @@
    Demo-safe: never blocks the app from loading if a fetch fails.
    Base is derived from this script's own URL, so it works at a root or /subpath/. */
 const BASE = self.location.pathname.replace(/sw\.js$/, '');
-const CACHE = 'luma-v4';
+const CACHE = 'luma-v5';
 const APP_SHELL = [
   BASE,
   BASE + 'index.html',
