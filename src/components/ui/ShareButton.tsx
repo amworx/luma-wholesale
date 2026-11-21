@@ -52,13 +52,16 @@ export function ShareButton({ title, text = '', url, order, storeNameAr = 'لُ�
         files: file ? [file] : undefined,
       };
 
-      if (navigator.share && (!file || navigator.canShare?.({ files: [file] }))) {
+      // Try the native share sheet whenever it exists. Some browsers report
+      // canShare({files}) === false yet still accept the file, so we attempt
+      // the share first and only fall back if it actually fails.
+      if (navigator.share) {
         try {
           await navigator.share(data);
           return; // shared successfully
         } catch (err) {
           if ((err as Error)?.name === 'AbortError') return; // user cancelled
-          // Sharing a file failed on this device — fall through to fallback.
+          // Sharing failed on this device — fall through to fallback.
         }
       }
 
@@ -66,7 +69,7 @@ export function ShareButton({ title, text = '', url, order, storeNameAr = 'لُ�
       if (file) {
         const { downloadPdf } = await import('@/data/reportPdf');
         downloadPdf(file);
-        toast.show('تم تنزيل ملف PDF — يمكنك إرساله من جهازك', 'success');
+        toast.show('تم تنزيل ملف PDF — افتحه من جهازك ثم أرسله من تطبيق المشاركة', 'success');
       } else {
         await navigator.clipboard.writeText(`${text}\n${shareUrl}`.trim());
         setCopied(true);

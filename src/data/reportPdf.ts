@@ -104,6 +104,7 @@ export function buildOrderReportDoc(order: Order, storeNameAr: string): TDocumen
   ];
 
   // Table: build logical rows, then reverse column order so column 1 is on the right.
+  // Every cell is right-aligned (RTL) and given generous padding so nothing is cramped.
   const header = ['المنتج', 'الوصف', 'الكمية', 'سعر الوحدة', 'المجموع'].map(t);
   const dataRows = order.lines.map((l) => [
     t(l.productNameAr), t(l.variantNameAr), String(l.quantity), money(l.unitPrice), money(l.lineTotal),
@@ -111,37 +112,45 @@ export function buildOrderReportDoc(order: Order, storeNameAr: string): TDocumen
   const widths = ['26%', '26%', '10%', '18%', '20%'];
   const tableBody = [header, ...dataRows].map((row, i) =>
     [...row].reverse().map((cell) => ({
-      text: cell, fontSize: 10, bold: i === 0,
-      ...(i === 0 ? { fillColor: '#f2eef1' } : {}),
+      text: cell, fontSize: 12, bold: i === 0, alignment: 'right' as const,
+      color: i === 0 ? '#ffffff' : '#1f1f1f',
+      ...(i === 0 ? { fillColor: '#7c1d4f' } : {}),
     })),
   );
 
   const totalRows: [string, string][] = [
-    ['المجموع الفرعي (سعر الطلب)', money(order.subtotal)],
+    ['المجموع الفرعي', money(order.subtotal)],
     ['الشحن التقديري', order.shippingFee ? money(order.shippingFee) : '—'],
     ['الإجمالي التقديري', money(order.total)],
   ];
 
+  // Put the space at the START of the value run: pdfmake trims trailing
+  // whitespace in a run, which otherwise glues the label to the value.
+  const field = ([k, v]: [string, string]) => ({
+    text: [{ text: `${t(k)}:`, color: '#666666' }, { text: `\u00A0${t(v)}`, bold: true }],
+    fontSize: 12, alignment: 'right' as const, margin: [0, 0, 0, 7] as [number, number, number, number],
+  });
+
   const content: Content[] = [
-    { text: t(storeNameAr), fontSize: 20, bold: true, color: '#7c1d4f', alignment: 'right', margin: [0, 0, 0, 2] },
-    { text: t('تقرير طلب شراء بالجملة'), fontSize: 11, color: '#666666', alignment: 'right', margin: [0, 0, 0, 10] },
+    { text: t(storeNameAr), fontSize: 26, bold: true, color: '#7c1d4f', alignment: 'right', margin: [0, 0, 0, 4] },
+    { text: t('تقرير طلب شراء بالجملة'), fontSize: 13, color: '#666666', alignment: 'right', margin: [0, 0, 0, 14] },
     {
       columns: [
-        { text: order.orderNumber, fontSize: 16, bold: true, alignment: 'left' },
-        { text: t(new Date(order.createdAt).toLocaleDateString('ar-SY')), fontSize: 11, color: '#666666', alignment: 'right' },
+        { text: t(new Date(order.createdAt).toLocaleDateString('ar-SY')), fontSize: 12, color: '#666666', alignment: 'left' },
+        { text: order.orderNumber, fontSize: 18, bold: true, alignment: 'right' },
       ],
-      margin: [0, 0, 0, 8],
+      margin: [0, 0, 0, 10],
     },
-    { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#7c1d4f' }], margin: [0, 0, 0, 12] },
+    { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#7c1d4f' }], margin: [0, 0, 0, 16] },
     {
       columns: [
-        { width: '50%', stack: info.slice(0, 3).map(([k, v]) => ({ text: [{ text: t(`${k}: `), color: '#666666' }, { text: t(v), bold: true }], fontSize: 11, margin: [0, 0, 0, 4] })) },
-        { width: '50%', stack: info.slice(3).map(([k, v]) => ({ text: [{ text: t(`${k}: `), color: '#666666' }, { text: t(v), bold: true }], fontSize: 11, margin: [0, 0, 0, 4] })) },
+        { width: '50%', stack: info.slice(3).map(field) },
+        { width: '50%', stack: info.slice(0, 3).map(field) },
       ],
       margin: [0, 0, 0, 6],
     },
-    { text: [{ text: t('العنوان: '), color: '#666666' }, { text: t(addressLine), bold: true }], fontSize: 11, margin: [0, 0, 0, 4] },
-    ...(deliveryTime ? [{ text: [{ text: t('وقت التوصيل: '), color: '#666666' }, { text: t(deliveryTime), bold: true }], fontSize: 11, margin: [0, 0, 0, 10] } as Content] : []),
+    { text: [{ text: `${t('العنوان')}:`, color: '#666666' }, { text: `\u00A0${t(addressLine)}`, bold: true }], fontSize: 12, alignment: 'right', margin: [0, 0, 0, 7] },
+    ...(deliveryTime ? [{ text: [{ text: `${t('وقت التوصيل')}:`, color: '#666666' }, { text: `\u00A0${t(deliveryTime)}`, bold: true }], fontSize: 12, alignment: 'right', margin: [0, 0, 0, 12] } as Content] : []),
     {
       table: {
         headerRows: 1,
@@ -149,22 +158,26 @@ export function buildOrderReportDoc(order: Order, storeNameAr: string): TDocumen
         body: tableBody,
       },
       layout: {
-        hLineWidth: () => 0.6, vLineWidth: () => 0.6,
-        hLineColor: () => '#bbbbbb', vLineColor: () => '#bbbbbb',
-        paddingTop: () => 5, paddingBottom: () => 5,
+        hLineWidth: (i: number) => (i === 0 || i === 1 ? 1 : 0.6),
+        vLineWidth: () => 0.6,
+        hLineColor: () => '#cccccc', vLineColor: () => '#cccccc',
+        paddingTop: () => 9, paddingBottom: () => 9, paddingLeft: () => 8, paddingRight: () => 8,
       },
-      margin: [0, 6, 0, 12],
+      margin: [0, 6, 0, 16],
     },
     ...totalRows.map(([k, v]) => ({
-      columns: [{ text: t(k), fontSize: 11 }, { text: v, fontSize: 11, bold: true, alignment: 'right' as const }],
-      margin: [0, 0, 0, 3] as [number, number, number, number],
+      columns: [
+        { text: v, fontSize: 12, bold: true, alignment: 'left' as const },
+        { text: t(k), fontSize: 12, alignment: 'right' as const },
+      ],
+      margin: [0, 0, 0, 6] as [number, number, number, number],
     })),
     {
       columns: [
-        { text: t('السعر النهائي المتفق عليه'), fontSize: 13, bold: true, color: '#7c1d4f' },
-        { text: order.quotedTotal !== null ? money(order.quotedTotal) : t('لم يحدد بعد'), fontSize: 13, bold: true, color: '#7c1d4f', alignment: 'right' },
+        { text: order.quotedTotal !== null ? money(order.quotedTotal) : t('لم يحدد بعد'), fontSize: 15, bold: true, color: '#7c1d4f', alignment: 'left' },
+        { text: t('السعر النهائي المتفق عليه'), fontSize: 15, bold: true, color: '#7c1d4f', alignment: 'right' },
       ],
-      margin: [0, 8, 0, 4],
+      margin: [0, 12, 0, 6],
     },
     ...(order.quotedTotal !== null && order.quotedTotal !== order.total
       ? [{ text: t(`الفرق عن الإجمالي التقديري: ${money(order.quotedTotal - order.total)}`), fontSize: 10, color: '#666666', margin: [0, 0, 0, 6] } as Content]
